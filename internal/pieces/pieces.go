@@ -1,8 +1,11 @@
 package pieces
 
-func CreatePiece(rank Rank) *Piece {
+import "github.com/cBiscuitSurprise/strate-go/internal/core"
+
+func CreatePiece(player *core.Player, rank Rank) *Piece {
 	return &Piece{
 		Rank:     rank,
+		Player:   player,
 		MaxMoves: getMovesForRank(rank),
 	}
 }

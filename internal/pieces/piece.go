@@ -6,14 +6,15 @@ type AttackHandler func(by Piece) core.Winner
 
 type Piece struct {
 	Rank     Rank
+	Player   *core.Player
 	MaxMoves int
 }
 
-func (p Piece) getName() string {
+func (p *Piece) getName() string {
 	return p.Rank.String()
 }
 
-func (p Piece) attack(attackee Piece) (core.Winner, error) {
+func (p *Piece) Attack(attackee *Piece) (core.Winner, error) {
 	if p.Rank == RANK_Bomb || attackee.Rank == RANK_Bomb {
 		return AttackBomb(attackee, p)
 	} else {
@@ -21,7 +22,7 @@ func (p Piece) attack(attackee Piece) (core.Winner, error) {
 	}
 }
 
-func genericAttackPiece(attackee Piece, attacker Piece) (core.Winner, error) {
+func genericAttackPiece(attackee *Piece, attacker *Piece) (core.Winner, error) {
 	if attackee.Rank == attacker.Rank {
 		return core.WINNER_Draw, nil
 	} else if attacker.Rank > attackee.Rank {

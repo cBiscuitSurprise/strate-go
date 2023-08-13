@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"github.com/cBiscuitSurprise/strate-go/internal/core"
 	game_errors "github.com/cBiscuitSurprise/strate-go/internal/errors"
 	"github.com/cBiscuitSurprise/strate-go/internal/pieces"
 	"github.com/stretchr/testify/assert"
@@ -40,7 +41,7 @@ func TestBoardInitialized(t *testing.T) {
 }
 
 func TestBoardPlacePiece(t *testing.T) {
-	flag := pieces.CreatePiece(pieces.RANK_Flag)
+	flag := pieces.CreatePiece(nil, pieces.RANK_Flag)
 	board := Board{}
 
 	unplayable := []Position{{5, 6}}
@@ -76,4 +77,80 @@ func TestBoardPlacePiece(t *testing.T) {
 
 	assert.NotNil(t, err)
 	assert.Equal(t, game_errors.ERROR_Board_UnplayableSquare, err.Code)
+}
+
+func TestBoardMovePiece(t *testing.T) {
+	board := Board{}
+
+	/* Setup Board
+	|  |  |  |  |  |  |  |  |  |  |
+	|  |  |  |  |  |  |  |  |  |  |
+	|  |  |  |  |  |  |  |  |  |  |
+	|  |  |  |  |  |  |  |  |  |  |
+	|  |  |  |  |1M|2M|  |  |  |  |
+	|  |  |  |  |  |2C|xx|  |  |  |
+	|  |  |  |  |  |  |1G|  |  |  |
+	|  |  |  |  |  |  |  |  |  |  |
+	|  |  |  |  |  |  |  |  |  |  |
+	|  |  |  |  |  |  |  |  |  |  |
+	*/
+	unplayable := []Position{{5, 6}}
+	board.initialize(unplayable)
+
+	playerOne := &core.Player{Number: 1}
+	playerTwo := &core.Player{Number: 2}
+
+	playerOneGeneral := pieces.CreatePiece(playerOne, pieces.RANK_General)
+	err := board.placePiece(playerOneGeneral, Position{6, 6})
+	assert.Nil(t, err)
+
+	playerOneMarshal := pieces.CreatePiece(playerOne, pieces.RANK_Marshal)
+	err = board.placePiece(playerOneMarshal, Position{4, 4})
+	assert.Nil(t, err)
+
+	playerTwoColonel := pieces.CreatePiece(playerTwo, pieces.RANK_Colonel)
+	err = board.placePiece(playerTwoColonel, Position{5, 5})
+	assert.Nil(t, err)
+
+	playerTwoMarshal := pieces.CreatePiece(playerTwo, pieces.RANK_Marshal)
+	err = board.placePiece(playerTwoMarshal, Position{4, 5})
+	assert.Nil(t, err)
+
+	// Move player-one-general up one space (Error: unplayable)
+	removed, err := board.MovePiece(Position{6, 6}, Position{5, 6})
+	assert.Equal(t, game_errors.ERROR_Board_UnplayableSquare, err.Code)
+	assert.Len(t, removed, 0)
+	assert.Equal(t, playerOneGeneral, board.getSquare(Position{6, 6}).piece)
+
+	// Move player-one-general left one space
+	removed, err = board.MovePiece(Position{6, 6}, Position{6, 5})
+	assert.Nil(t, err)
+	assert.Len(t, removed, 0)
+	assert.Equal(t, playerOneGeneral, board.getSquare(Position{6, 5}).piece)
+	assert.Nil(t, board.getSquare(Position{6, 6}).piece)
+
+	// Move player-one-general up one space (take Player Two Colonel)
+	removed, err = board.MovePiece(Position{6, 5}, Position{5, 5})
+	assert.Nil(t, err)
+	assert.Len(t, removed, 1)
+	assert.Equal(t, playerTwoColonel, removed[0])
+	assert.Equal(t, playerOneGeneral, board.getSquare(Position{5, 5}).piece)
+	assert.Nil(t, board.getSquare(Position{6, 5}).piece)
+
+	// Move player-one-general up one space (lose Player One General)
+	removed, err = board.MovePiece(Position{5, 5}, Position{4, 5})
+	assert.Nil(t, err)
+	assert.Len(t, removed, 1)
+	assert.Equal(t, playerOneGeneral, removed[0])
+	assert.Equal(t, playerTwoMarshal, board.getSquare(Position{4, 5}).piece)
+	assert.Nil(t, board.getSquare(Position{5, 5}).piece)
+
+	// Move player-one-marshal right one space (lose both Marshals)
+	removed, err = board.MovePiece(Position{4, 4}, Position{4, 5})
+	assert.Nil(t, err)
+	assert.Len(t, removed, 2)
+	assert.Contains(t, removed, playerOneMarshal)
+	assert.Contains(t, removed, playerTwoMarshal)
+	assert.Nil(t, board.getSquare(Position{4, 4}).piece)
+	assert.Nil(t, board.getSquare(Position{4, 5}).piece)
 }

@@ -1,3 +1,5 @@
 package core
 
-type Player struct{}
+type Player struct {
+	Number int8
+}

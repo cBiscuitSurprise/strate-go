@@ -26,7 +26,7 @@ func TestCreatePiece(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		piece := CreatePiece(tc.rank)
+		piece := CreatePiece(nil, tc.rank)
 
 		assert.Equal(t, tc.rank, piece.Rank)
 		assert.Equal(t, tc.moves, piece.MaxMoves)

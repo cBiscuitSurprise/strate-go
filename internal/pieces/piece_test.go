@@ -34,10 +34,10 @@ func TestAttackPiece(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		attacker := CreatePiece(tc.attacker)
-		attackee := CreatePiece(tc.attackee)
+		attacker := CreatePiece(nil, tc.attacker)
+		attackee := CreatePiece(nil, tc.attackee)
 
-		winner, err := attacker.attack(*attackee)
+		winner, err := attacker.Attack(attackee)
 
 		assert.Nil(t, err)
 		assert.Equal(t, tc.want, winner, "Attacker %v, Attackee %v", attacker, attackee)
