@@ -20,6 +20,14 @@ Red starts by moving one of their movable pieces to an open spot on the board.
 
 This project is comprised of a cli which can be used to play the game on the terminal or serve as a websocket application for playing via the web.
 
+### Setup
+
+The generated protobuf interface isn't tracked as part of this repository. Instead it needs to be generated if you're working on this project.
+
+```
+./scripts/build_protobuf.sh
+```
+
 ### Terminal
 
 ```
