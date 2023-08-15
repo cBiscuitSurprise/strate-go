@@ -1,0 +1,19 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+load("@bazel_gazelle//:def.bzl", "gazelle")
+
+# gazelle:prefix github.com/cBiscuitSurprise/strate-go
+gazelle(name = "gazelle")
+
+go_library(
+    name = "strate-go_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/cBiscuitSurprise/strate-go",
+    visibility = ["//visibility:private"],
+    deps = ["//cmd"],
+)
+
+go_binary(
+    name = "strate-go",
+    embed = [":strate-go_lib"],
+    visibility = ["//visibility:public"],
+)

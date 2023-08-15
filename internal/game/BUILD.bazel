@@ -1,0 +1,28 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "game",
+    srcs = [
+        "board.go",
+        "game.go",
+    ],
+    importpath = "github.com/cBiscuitSurprise/strate-go/internal/game",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/core",
+        "//internal/errors",
+        "//internal/pieces",
+    ],
+)
+
+go_test(
+    name = "game_test",
+    srcs = ["board_test.go"],
+    embed = [":game"],
+    deps = [
+        "//internal/core",
+        "//internal/errors",
+        "//internal/pieces",
+        "@com_github_stretchr_testify//assert",
+    ],
+)

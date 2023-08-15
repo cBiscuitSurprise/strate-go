@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "core",
+    srcs = [
+        "attack.go",
+        "player.go",
+    ],
+    importpath = "github.com/cBiscuitSurprise/strate-go/internal/core",
+    visibility = ["//:__subpackages__"],
+)
+
+go_test(
+    name = "core_test",
+    srcs = ["attack_test.go"],
+    embed = [":core"],
+    deps = ["@com_github_stretchr_testify//assert"],
+)

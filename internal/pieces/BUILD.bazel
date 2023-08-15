@@ -1,0 +1,31 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "pieces",
+    srcs = [
+        "bomb.go",
+        "piece.go",
+        "pieces.go",
+        "rank.go",
+    ],
+    importpath = "github.com/cBiscuitSurprise/strate-go/internal/pieces",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/core",
+        "//internal/errors",
+    ],
+)
+
+go_test(
+    name = "pieces_test",
+    srcs = [
+        "bomb_test.go",
+        "piece_test.go",
+        "pieces_test.go",
+    ],
+    embed = [":pieces"],
+    deps = [
+        "//internal/core",
+        "@com_github_stretchr_testify//assert",
+    ],
+)
