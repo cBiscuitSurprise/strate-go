@@ -22,20 +22,26 @@ This project is comprised of a cli which can be used to play the game on the ter
 
 ### Setup
 
-The generated protobuf interface isn't tracked as part of this repository. Instead it needs to be generated if you're working on this project.
+Once the build completes, we can link the generated proto files back into the project so intellisense works (optional)
 
 ```
-./scripts/build_protobuf.sh
+ln -s $(readlink -e bazel-bin)/api/proto/strategopb_go_proto_/github.com/cBiscuitSurprise/strate-go/api/go/ api/go
+```
+
+### Build
+
+```bash
+bazel build //:strate-go
 ```
 
 ### Terminal
 
-```
-strate-go play
+```bash
+bazel run //:strate-go play
 ```
 
 ### Websockets
 
-```
-strate-go serve
+```bash
+bazel run //:strate-go serve
 ```

@@ -24,7 +24,7 @@ func (s *strateGoServer) Ping(ctx context.Context, _ *emptypb.Empty) (*pb.Pong, 
 func (s *strateGoServer) DeepPing(ctx context.Context, _ *emptypb.Empty) (*pb.Pong, error) {
 	return &pb.Pong{
 		Timestamp: &timestamppb.Timestamp{Seconds: time.Now().Unix()},
-		Message:   "pong",
+		Message:   "poOoOong",
 		Games:     []*pb.Game{},
 	}, nil
 }
