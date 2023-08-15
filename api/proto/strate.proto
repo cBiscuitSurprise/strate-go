@@ -6,7 +6,7 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/cBiscuitSurprise/strate-go/api/go/strategopb";
 
-import "game/game.proto";
+// import "game/game.proto";
 
 service StrateGo {
   rpc Ping(google.protobuf.Empty) returns (Pong) {}
@@ -17,4 +17,8 @@ message Pong {
   google.protobuf.Timestamp timestamp = 1;
   string message = 2;
   repeated Game games = 16;
+}
+
+message Game {
+  repeated string players = 1;
 }

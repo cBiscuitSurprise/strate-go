@@ -1,8 +1,0 @@
-syntax = "proto3";
-package stratego;
-
-option go_package = "github.com/cBiscuitSurprise/strate-go/api/go/strategopb/game";
-
-message Game {
-  repeated string players = 1;
-}
