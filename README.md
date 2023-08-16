@@ -24,7 +24,7 @@ This project is comprised of a cli which can be used to play the game on the ter
 
 Once the build completes, we can link the generated proto files back into the project so intellisense works (optional)
 
-```
+```bash
 ln -s $(readlink -e bazel-bin)/api/proto/strategopb_go_proto_/github.com/cBiscuitSurprise/strate-go/api/go/ api/go
 ```
 
@@ -44,4 +44,11 @@ bazel run //:strate-go play
 
 ```bash
 bazel run //:strate-go serve
+```
+
+### Running `go`
+
+```bash
+bazel run @io_bazel_rules_go//go -- args
+bazel run @io_bazel_rules_go//go -- get github.com/spf13/viper
 ```

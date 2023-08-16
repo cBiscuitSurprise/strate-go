@@ -11,6 +11,11 @@ option go_package = "github.com/cBiscuitSurprise/strate-go/api/go/strategopb";
 service StrateGo {
   rpc Ping(google.protobuf.Empty) returns (Pong) {}
   rpc DeepPing(google.protobuf.Empty) returns (Pong) {}
+  rpc LongPing(stream LongPingRequest) returns (stream Pong) {}
+}
+
+message LongPingRequest {
+  string message = 1;
 }
 
 message Pong {
