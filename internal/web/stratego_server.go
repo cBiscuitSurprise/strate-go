@@ -31,14 +31,14 @@ func (s *strateGoServer) DeepPing(ctx context.Context, _ *emptypb.Empty) (*pb.Po
 }
 
 func (s *strateGoServer) LongPing(stream pb.StrateGo_LongPingServer) error {
-	preprend := "p - "
+	preprend := "[p] "
 	preprendLittle := true
 	for {
 		in, err := stream.Recv()
 		if err == io.EOF {
 			if err := stream.Send(&pb.Pong{
 				Timestamp: &timestamppb.Timestamp{Seconds: time.Now().Unix()},
-				Message:   "ng - bye",
+				Message:   "[ng] byeeeeee 👋 ...",
 				Games:     []*pb.Game{},
 			}); err != nil {
 				return err
@@ -56,9 +56,9 @@ func (s *strateGoServer) LongPing(stream pb.StrateGo_LongPingServer) error {
 			return err
 		}
 		if preprendLittle {
-			preprend = "o - "
+			preprend = "[o] "
 		} else {
-			preprend = "O - "
+			preprend = "[O] "
 		}
 		preprendLittle = !preprendLittle
 	}
