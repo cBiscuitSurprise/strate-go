@@ -13,7 +13,7 @@ var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "Startup a websockets server to interact with this game",
 	Run: func(cmd *cobra.Command, args []string) {
-		web.Serve(web.ServerOptions{Origin: "localhost:12345"})
+		web.Serve(web.ServerOptions{Origin: "0.0.0.0:12345"})
 	},
 }
 
