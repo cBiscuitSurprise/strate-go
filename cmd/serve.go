@@ -4,7 +4,10 @@ Copyright © 2023 Casey Boyer <caseyb1101@gmail.com>
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/cBiscuitSurprise/strate-go/internal/web"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -13,20 +16,26 @@ var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "Startup a websockets server to interact with this game",
 	Run: func(cmd *cobra.Command, args []string) {
-		web.Serve(web.ServerOptions{Origin: "0.0.0.0:12345"})
+		origin, err := cmd.Flags().GetString("origin")
+		if err != nil {
+			log.Error().Err(err).Msgf("failed to launch server, bad option for 'origin'")
+		}
+
+		port, _ := cmd.Flags().GetString("port")
+
+		if err != nil {
+			log.Error().Err(err).Msgf("failed to launch server, bad option for 'port'")
+		}
+
+		if err == nil {
+			web.Serve(web.ServerOptions{Origin: fmt.Sprintf("%s:%s", origin, port)})
+		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(serveCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// serveCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// serveCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	serveCmd.PersistentFlags().String("origin", "localhost", "The ip address to bind to (e.g. '0.0.0.0')")
+	serveCmd.PersistentFlags().String("port", "1300", "The port address to bind to (e.g. '80')")
 }
