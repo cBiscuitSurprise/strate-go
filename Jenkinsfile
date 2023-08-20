@@ -121,10 +121,8 @@ pipeline {
         
         stage('Image') {
             steps {
-                sh "echo 'FROM alpine:latest' > prod.Dockerfile"
-                sh "echo 'ARG BINARY'  >> prod.Dockerfile"
-                sh "echo 'RUN echo \$BINARY' >> prod.Dockerfile"
-                
+                unstash "artifacts"
+
                 script {
                     docker.withRegistry('', 'dockerhub_cbiscuit87') {
                         img = docker.build(
