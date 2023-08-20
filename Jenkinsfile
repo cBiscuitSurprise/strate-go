@@ -118,5 +118,23 @@ pipeline {
                 sh "ls -la ${OUTPUT_DIR}/${OUTPUT_BIN}"
             }
         }
+        
+        stage('Image') {
+            steps {
+                sh "echo 'FROM alpine:latest' > prod.Dockerfile"
+                sh "echo 'ARG BINARY'  >> prod.Dockerfile"
+                sh "echo 'RUN echo \$BINARY' >> prod.Dockerfile"
+                
+                script {
+                    docker.withRegistry('', 'dockerhub_cbiscuit87') {
+                        img = docker.build(
+                            "cbiscuit87/strate-go:dev-${env.BUILD_ID}",
+                            "--build-arg=\"BINARY=${OUTPUT_DIR}/${OUTPUT_BIN}\" -f build/prod.Dockerfile ."
+                        )
+                        img.push()
+                    }
+                }
+            }
+        }
     }
 }
