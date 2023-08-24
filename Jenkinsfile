@@ -8,6 +8,13 @@ pipeline {
         OUTPUT_COV_DIR = ".jenkins-cov"
         OUTPUT_BIN = "strate-go-dev-${env.BUILD_ID}"
         BAZEL_OUTPUT_PATH = ""
+
+        // Image
+        DOCKER_OUTPUT_IMAGE_NAME = "cbiscuit87/strate-go"
+        DOCKER_OUTPUT_IMAGE_TAG = "dev-${env.BUILD_ID}"
+
+        // Deploy
+        KUBE_DEPLOYMENT_FILE="deploy/deployment.yaml"
     }
 
     stages {
@@ -126,10 +133,25 @@ pipeline {
                 script {
                     docker.withRegistry('', 'dockerhub_cbiscuit87') {
                         img = docker.build(
-                            "cbiscuit87/strate-go:dev-${env.BUILD_ID}",
+                            "$DOCKER_OUTPUT_IMAGE_NAME:$DOCKER_OUTPUT_IMAGE_TAG",
                             "--build-arg=\"BINARY=${OUTPUT_DIR}/${OUTPUT_BIN}\" -f build/prod.Dockerfile ."
                         )
                         img.push()
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy') {
+            steps {
+                sh "__IMAGE_NAME=$DOCKER_OUTPUT_IMAGE_NAME __IMAGE_TAG=$DOCKER_OUTPUT_IMAGE_TAG envsubst < deploy/deployment.template.yaml > $KUBE_DEPLOYMENT_FILE"
+
+                script {
+                    withKubeConfig([
+                        credentialsId: 'kube-config-minikube',
+                        contextName: 'deploy-portfolio',
+                    ]) {
+                        sh "kubectl apply -f $KUBE_DEPLOYMENT_FILE"
                     }
                 }
             }
