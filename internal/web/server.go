@@ -62,10 +62,12 @@ func UnaryRequestLogger(ctx context.Context, req interface{}, info *grpc.UnarySe
 	}
 
 	requestId := strings.Join(md["x-request-id"], ", ")
+	userId := strings.Join(md["x-stratego-user-id"], ", ")
 
 	log.Info().
 		Str("FullMethod", info.FullMethod).
 		Str("RequestId", requestId).
+		Str("UserId", userId).
 		Msgf("serving request")
 
 	resp, err = handler(ctx, req)
@@ -75,6 +77,7 @@ func UnaryRequestLogger(ctx context.Context, req interface{}, info *grpc.UnarySe
 			Err(err).
 			Str("FullMethod", info.FullMethod).
 			Str("RequestId", requestId).
+			Str("UserId", userId).
 			Msg("error from handler")
 	}
 
