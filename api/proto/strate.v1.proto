@@ -74,7 +74,7 @@ message Piece {
 
 message Square {
   string id = 1;
-	Piece piece = 2;
+	optional Piece piece = 2;
 	bool playable = 3;
 }
 
