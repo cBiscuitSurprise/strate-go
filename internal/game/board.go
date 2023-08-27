@@ -11,72 +11,81 @@ const BOARD_SIZE_X uint8 = BOARD_SIZE
 const BOARD_SIZE_Y uint8 = BOARD_SIZE
 
 type Position struct {
-	x uint8
-	y uint8
+	R uint8
+	C uint8
 }
 
 type Square struct {
-	piece    *pieces.Piece
-	playable bool
+	Piece    *pieces.Piece
+	Playable bool
+}
+
+type BoardSize struct {
+	Rows    uint8
+	Columns uint8
 }
 
 type Board struct {
 	squares [BOARD_SIZE_X][BOARD_SIZE_Y]*Square
 }
 
-func (b *Board) initialize(unplayable []Position) {
+func (b *Board) GetSize() BoardSize {
+	return BoardSize{Rows: BOARD_SIZE_X, Columns: BOARD_SIZE_Y}
+}
+
+func (b *Board) Initialize(unplayable []Position) {
 	for y, row := range b.squares {
 		for x := range row {
-			b.squares[x][y] = &Square{playable: true}
+			b.squares[x][y] = &Square{Playable: true}
 		}
 	}
 
 	for _, position := range unplayable {
-		b.squares[position.x][position.y].playable = false
+		b.squares[position.R][position.C].Playable = false
 	}
 }
 
-func (b *Board) getSquare(position Position) *Square {
-	return b.squares[position.x][position.y]
+func (b *Board) GetSquare(position Position) *Square {
+	return b.squares[position.R][position.C]
 }
 
-func (b *Board) placePiece(piece *pieces.Piece, position Position) *game_errors.GameError {
-	if position.x >= BOARD_SIZE_X || position.y >= BOARD_SIZE_Y {
+func (b *Board) PlacePiece(piece *pieces.Piece, position Position) *game_errors.GameError {
+	if position.R >= BOARD_SIZE_X || position.C >= BOARD_SIZE_Y {
 		return game_errors.GameErrorf(
 			game_errors.ERROR_Board_IndexOutOfRange,
 			"invalid position: %v for board size: %d rows x %d columns", position, BOARD_SIZE_X, BOARD_SIZE_Y,
 		)
 	}
 
-	if b.getSquare(position) == nil {
+	if b.GetSquare(position) == nil {
 		return game_errors.GameErrorf(
 			game_errors.ERROR_Board_Uninitialized,
 			"invalid position: %v, board has not been initialized", position,
 		)
 	}
 
-	if !b.getSquare(position).playable {
+	if !b.GetSquare(position).Playable {
 		return game_errors.GameErrorf(
 			game_errors.ERROR_Board_UnplayableSquare,
 			"invalid position: %v, square is not playable", position,
 		)
 	}
 
-	if b.getSquare(position).piece != nil {
+	if b.GetSquare(position).Piece != nil {
 		return game_errors.GameErrorf(
 			game_errors.ERROR_Board_OccupiedSquare,
 			"invalid position: %v, square is occupied", position,
 		)
 	}
 
-	b.squares[position.x][position.y].piece = piece
+	b.squares[position.R][position.C].Piece = piece
 
 	return nil
 }
 
 func (b *Board) MovePiece(from Position, to Position) ([]*pieces.Piece, *game_errors.GameError) {
-	fromSquare := b.getSquare(from)
-	toSquare := b.getSquare(to)
+	fromSquare := b.GetSquare(from)
+	toSquare := b.GetSquare(to)
 
 	if fromSquare == nil || toSquare == nil {
 		return nil, game_errors.GameErrorf(
@@ -85,14 +94,14 @@ func (b *Board) MovePiece(from Position, to Position) ([]*pieces.Piece, *game_er
 		)
 	}
 
-	if fromSquare.piece == nil {
+	if fromSquare.Piece == nil {
 		return nil, game_errors.GameErrorf(
 			game_errors.ERROR_Board_Uninitialized,
 			"invalid from position: %v, there is no pieces here", from,
 		)
 	}
 
-	if !toSquare.playable {
+	if !toSquare.Playable {
 		return nil, game_errors.GameErrorf(
 			game_errors.ERROR_Board_UnplayableSquare,
 			"invalid to position: %v, square is not playable", to,
@@ -100,12 +109,12 @@ func (b *Board) MovePiece(from Position, to Position) ([]*pieces.Piece, *game_er
 	}
 
 	var losingPieces []*pieces.Piece
-	if toSquare.piece == nil {
+	if toSquare.Piece == nil {
 		// no contest
-		b.squares[to.x][to.y].piece = fromSquare.piece
-		b.squares[from.x][from.y].piece = nil
+		b.squares[to.R][to.C].Piece = fromSquare.Piece
+		b.squares[from.R][from.C].Piece = nil
 	} else {
-		winner, err := fromSquare.piece.Attack(toSquare.piece)
+		winner, err := fromSquare.Piece.Attack(toSquare.Piece)
 
 		if err != nil {
 			return nil, game_errors.GameErrorf(
@@ -115,17 +124,17 @@ func (b *Board) MovePiece(from Position, to Position) ([]*pieces.Piece, *game_er
 		}
 
 		if winner == core.WINNER_Attacker {
-			losingPieces = append(losingPieces, toSquare.piece)
-			b.squares[to.x][to.y].piece = fromSquare.piece
+			losingPieces = append(losingPieces, toSquare.Piece)
+			b.squares[to.R][to.C].Piece = fromSquare.Piece
 		} else if winner == core.WINNER_Attackee {
-			losingPieces = append(losingPieces, fromSquare.piece)
+			losingPieces = append(losingPieces, fromSquare.Piece)
 		} else {
 			// both pieces removed from board
-			losingPieces = append(losingPieces, toSquare.piece)
-			losingPieces = append(losingPieces, fromSquare.piece)
-			b.squares[to.x][to.y].piece = nil
+			losingPieces = append(losingPieces, toSquare.Piece)
+			losingPieces = append(losingPieces, fromSquare.Piece)
+			b.squares[to.R][to.C].Piece = nil
 		}
-		b.squares[from.x][from.y].piece = nil
+		b.squares[from.R][from.C].Piece = nil
 	}
 
 	return losingPieces, nil

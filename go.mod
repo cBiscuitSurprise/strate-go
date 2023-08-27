@@ -3,6 +3,7 @@ module github.com/cBiscuitSurprise/strate-go
 go 1.20
 
 require (
+	github.com/aidarkhanov/nanoid v1.0.8
 	github.com/rs/zerolog v1.30.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0

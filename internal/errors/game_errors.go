@@ -20,5 +20,5 @@ type GameError struct {
 func (e *GameError) Error() string { return e.msg }
 
 func GameErrorf(code ErrorCode, format string, a ...any) *GameError {
-	return &GameError{Code: code, msg: fmt.Sprintf(format, a[:])}
+	return &GameError{Code: code, msg: fmt.Sprintf(format, a...)}
 }

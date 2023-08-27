@@ -1,0 +1,91 @@
+syntax = "proto3";
+package stratego.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/cBiscuitSurprise/strate-go/api/go/strategopb";
+
+service StrateGo {
+  // #region Health
+  rpc Ping(google.protobuf.Empty) returns (Pong) {}
+  rpc DeepPing(google.protobuf.Empty) returns (Pong) {}
+  rpc LongPing(stream LongPingRequest) returns (stream Pong) {}
+  // #endregion Health
+  
+  // #region Game
+  rpc NewGame(NewGameRequest) returns (NewGameResponse) {}
+  // #endregion Game
+}
+
+// #region Health
+message LongPingRequest {
+  string message = 1;
+}
+
+message Pong {
+  google.protobuf.Timestamp timestamp = 1;
+  string message = 2;
+  repeated Game games = 16;
+}
+// #endregion Health
+
+// #region Player
+enum PlayerColor {
+  PlayerColor_RED = 0;
+  PlayerColor_BLUE = 1;
+}
+
+message GamePlayer {
+  string id = 1;
+  PlayerColor color = 2;
+}
+// #endregion Player
+
+// #region Game
+enum GameState {
+  GameState_SETUP = 0;  // find partner, pick sides
+  GameState_PLAN = 1;   // place pieces
+  GameState_PLAY = 2;   // play game
+  GameState_END = 3;    // game is over
+  GameState_ERROR = 90;    // game has errored
+}
+
+message Game {
+  string id = 1;
+  GameState state = 2;
+  repeated string player_ids = 3;
+  Board board = 4;
+}
+
+message NewGameRequest {}
+
+message NewGameResponse {
+  Game game = 1;
+}
+// #endregion Game
+
+// #region Board
+message Piece {
+  string id = 1;
+  uint32 rank = 2;
+  GamePlayer player = 3;
+}
+
+message Square {
+  string id = 1;
+	Piece piece = 2;
+	bool playable = 3;
+}
+
+message Board {
+  string id = 1;
+  uint32 num_rows = 2;
+  uint32 num_columns = 3;
+  repeated Row rows = 4;
+}
+
+message Row {
+  repeated Square columns = 1;
+}
+// #endregion Board

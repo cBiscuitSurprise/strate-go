@@ -7,4 +7,4 @@ protoc \
   --go_opt=paths=source_relative \
   --go-grpc_out=$DST_DIR \
   --go-grpc_opt=paths=source_relative \
-  $(find $SRC_DIR -type f)
+  $(find $SRC_DIR -type f -name '*.proto')
