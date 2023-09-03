@@ -1,14 +1,12 @@
 package web
 
 import (
-	"context"
 	"net"
-	"strings"
 
+	"github.com/cBiscuitSurprise/strate-go/internal/web/stratego_rpc"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/metadata"
 )
 
 type ServerTlsOptions struct {
@@ -47,39 +45,8 @@ func Serve(params ServerOptions) {
 	}
 
 	opts = append(opts, grpc.UnaryInterceptor(UnaryRequestLogger))
+	opts = append(opts, grpc.StreamInterceptor(StreamRequestLogger))
 
-	grpcServer := newServer(opts)
+	grpcServer := stratego_rpc.NewServer(opts)
 	grpcServer.Serve(lis)
-}
-
-// a UnaryServerInterceptor to log the function name
-func UnaryRequestLogger(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		log.Warn().
-			Str("FullMethod", info.FullMethod).
-			Msgf("failed to get request metdata")
-	}
-
-	requestId := strings.Join(md["x-request-id"], ", ")
-	userId := strings.Join(md["x-stratego-user-id"], ", ")
-
-	log.Info().
-		Str("FullMethod", info.FullMethod).
-		Str("RequestId", requestId).
-		Str("UserId", userId).
-		Msgf("serving request")
-
-	resp, err = handler(ctx, req)
-
-	if err != nil {
-		log.Error().
-			Err(err).
-			Str("FullMethod", info.FullMethod).
-			Str("RequestId", requestId).
-			Str("UserId", userId).
-			Msg("error from handler")
-	}
-
-	return resp, err
 }
