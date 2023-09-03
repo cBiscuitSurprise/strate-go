@@ -1,28 +1,9 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "util",
-    srcs = [
-        "base_board.go",
-        "generate_pieces.go",
-        "random_board.go",
-    ],
+    srcs = ["id.go"],
     importpath = "github.com/cBiscuitSurprise/strate-go/internal/util",
     visibility = ["//:__subpackages__"],
-    deps = [
-        "//internal/core",
-        "//internal/game",
-        "//internal/pieces",
-        "@com_github_rs_zerolog//log",
-    ],
-)
-
-go_test(
-    name = "util_test",
-    srcs = ["generate_pieces_test.go"],
-    embed = [":util"],
-    deps = [
-        "//internal/core",
-        "@com_github_stretchr_testify//assert",
-    ],
+    deps = ["@com_github_aidarkhanov_nanoid//:nanoid"],
 )

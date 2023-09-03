@@ -9,7 +9,7 @@ import (
 	"github.com/aidarkhanov/nanoid"
 	pb "github.com/cBiscuitSurprise/strate-go/api/go/strategopb"
 	"github.com/cBiscuitSurprise/strate-go/internal/game"
-	"github.com/cBiscuitSurprise/strate-go/internal/util"
+	"github.com/cBiscuitSurprise/strate-go/internal/pieces"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -69,7 +69,7 @@ func (s *strateGoServer) LongPing(stream pb.StrateGo_LongPingServer) error {
 }
 
 func (s *strateGoServer) NewGame(ctx context.Context, request *pb.NewGameRequest) (*pb.NewGameResponse, error) {
-	board, err := util.CreateRandomlyPlannedBoard()
+	board, err := game.CreateRandomlyPlannedBoard()
 	if err != nil {
 		return nil, err
 	}
@@ -80,17 +80,17 @@ func (s *strateGoServer) NewGame(ctx context.Context, request *pb.NewGameRequest
 		for c := uint8(0); c < board.GetSize().Columns; c++ {
 			square := board.GetSquare(game.Position{R: r, C: c})
 
-			pbSquare := &pb.Square{Playable: square.Playable}
-			if square.Piece != nil {
+			pbSquare := &pb.Square{Playable: square.IsPlayable()}
+			if square.GetPiece() != nil {
 				color := pb.PlayerColor_PlayerColor_BLUE
-				if square.Piece.Player.Number == 2 {
+				if square.GetPiece().GetColor() == pieces.COLOR_red {
 					color = pb.PlayerColor_PlayerColor_RED
 				}
 				pbSquare.Piece = &pb.Piece{
 					Id:   fmt.Sprintf("%02d:%02d", r, c),
-					Rank: uint32(square.Piece.Rank),
+					Rank: uint32(square.GetPiece().GetRank()),
 					Player: &pb.GamePlayer{
-						Id:    fmt.Sprintf("%02d", square.Piece.Player.Number),
+						Id:    square.GetPiece().GetColor().String(),
 						Color: color,
 					},
 				}

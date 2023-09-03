@@ -1,11 +1,7 @@
-package util
-
-import (
-	"github.com/cBiscuitSurprise/strate-go/internal/game"
-)
+package game
 
 // create an empty standard board
-func createStandardBaseBoard() *game.Board {
+func CreateStandardBaseBoard() *Board {
 	/* Base Board
 	Blue
 	0 |  |  |  |  |  |  |  |  |  |  |
@@ -21,9 +17,9 @@ func createStandardBaseBoard() *game.Board {
 	   0  1  2  3  4  5  6  7  8  9
 	Red
 	*/
-	board := &game.Board{}
+	board := &Board{}
 
-	unplayable := []game.Position{
+	unplayable := []Position{
 		{R: 4, C: 2},
 		{R: 5, C: 2},
 		{R: 4, C: 3},

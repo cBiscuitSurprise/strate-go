@@ -4,15 +4,17 @@ go_library(
     name = "pieces",
     srcs = [
         "bomb.go",
+        "colors.go",
         "piece.go",
-        "pieces.go",
         "rank.go",
+        "standard.go",
     ],
     importpath = "github.com/cBiscuitSurprise/strate-go/internal/pieces",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/core",
         "//internal/errors",
+        "//internal/util",
     ],
 )
 
@@ -21,7 +23,7 @@ go_test(
     srcs = [
         "bomb_test.go",
         "piece_test.go",
-        "pieces_test.go",
+        "standard_test.go",
     ],
     embed = [":pieces"],
     deps = [

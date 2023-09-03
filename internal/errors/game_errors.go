@@ -9,7 +9,11 @@ const (
 	ERROR_Board_Uninitialized
 	ERROR_Board_UnplayableSquare
 	ERROR_Board_OccupiedSquare
+
 	ERROR_Contest_InvalidContest
+
+	ERROR_Game_InvalidMode
+	ERROR_Game_InvalidPiece
 )
 
 type GameError struct {

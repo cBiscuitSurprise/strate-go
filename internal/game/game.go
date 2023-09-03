@@ -1,8 +1,106 @@
 package game
 
-import "github.com/cBiscuitSurprise/strate-go/internal/core"
+import (
+	"github.com/cBiscuitSurprise/strate-go/internal/core"
+	game_errors "github.com/cBiscuitSurprise/strate-go/internal/errors"
+	"github.com/cBiscuitSurprise/strate-go/internal/pieces"
+	"github.com/cBiscuitSurprise/strate-go/internal/util"
+)
 
 type Game struct {
-	Players []*core.Player
-	Board   *Board
+	Board *Board
+
+	id      string
+	players map[string]*GamePlayer
+	pieces  map[string]map[string]*pieces.Piece
+	mode    GameMode
+}
+
+func NewTwoPlayerGame(red *core.Player, blue *core.Player) (*Game, error) {
+	redGamePlayer := NewGamePlayer(pieces.COLOR_red, red)
+	blueGamePlayer := NewGamePlayer(pieces.COLOR_blue, blue)
+
+	return &Game{
+		id: util.NewId(),
+		players: map[string]*GamePlayer{
+			red.GetId():  redGamePlayer,
+			blue.GetId(): blueGamePlayer,
+		},
+		pieces: map[string]map[string]*pieces.Piece{
+			red.GetId():  pieces.GenerateStandardPieces(pieces.COLOR_red),
+			blue.GetId(): pieces.GenerateStandardPieces(pieces.COLOR_blue),
+		},
+		mode:  GAMEMODE_Setup,
+		Board: CreateStandardBaseBoard(),
+	}, nil
+}
+
+func (g *Game) GetId() string {
+	return g.id
+}
+
+func (g *Game) GetPlayer(id string) (*GamePlayer, error) {
+	return g.players[id], nil
+}
+
+func (g *Game) PlacePiece(player_id string, piece_id string, position Position) *game_errors.GameError {
+	if g.mode != GAMEMODE_Plan {
+		return game_errors.GameErrorf(
+			game_errors.ERROR_Game_InvalidMode,
+			"game is not in planning mode, cannot proceed (%s)", g.mode.String(),
+		)
+	}
+
+	if p, ok := g.pieces[player_id][piece_id]; ok {
+		if err := g.Board.PlacePiece(p, position); err == nil {
+			return nil
+		} else {
+			return err
+		}
+	} else {
+		return game_errors.GameErrorf(
+			game_errors.ERROR_Game_InvalidPiece,
+			"piece, '%s', does not belong to player, '%s'!", piece_id,
+		)
+	}
+}
+
+func (g *Game) MovePiece(player_id string, from Position, to Position) *game_errors.GameError {
+	if g.mode != GAMEMODE_Play {
+		return game_errors.GameErrorf(
+			game_errors.ERROR_Game_InvalidMode,
+			"game is not in playing mode, cannot proceed (%s)", g.mode.String(),
+		)
+	}
+
+	playerColor := g.players[player_id].GetColor()
+
+	// player needs to own `from` piece
+	fromPiece := g.Board.GetSquare(from).GetPiece()
+	if fromPiece == nil {
+		return game_errors.GameErrorf(
+			game_errors.ERROR_Game_InvalidPiece,
+			"no piece at position!", from,
+		)
+	} else if fromPiece.GetColor() != playerColor {
+		return game_errors.GameErrorf(
+			game_errors.ERROR_Game_InvalidPiece,
+			"piece, '%s', does not belong to player, '%s'!", g.Board.GetSquare(from).GetPiece(), player_id,
+		)
+	}
+
+	// player can't to own `to` piece
+	toPiece := g.Board.GetSquare(to).GetPiece()
+	if toPiece != nil && toPiece.GetColor() == playerColor {
+		return game_errors.GameErrorf(
+			game_errors.ERROR_Game_InvalidPiece,
+			"piece, '%s', already belongs to player, '%s', invalid move!", toPiece, player_id,
+		)
+	}
+
+	if _, err := g.Board.MovePiece(from, to); err == nil {
+		return nil
+	} else {
+		return err
+	}
 }

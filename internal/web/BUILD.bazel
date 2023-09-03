@@ -11,7 +11,7 @@ go_library(
     deps = [
         "//api/proto:strategopb",
         "//internal/game",
-        "//internal/util",
+        "//internal/pieces",
         "@com_github_aidarkhanov_nanoid//:nanoid",
         "@com_github_rs_zerolog//log",
         "@org_golang_google_grpc//:go_default_library",

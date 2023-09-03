@@ -7,15 +7,44 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPiece(t *testing.T) {
-	got := Piece{
-		Rank:     RANK_Bomb,
-		MaxMoves: 42,
+func TestCreatePiece(t *testing.T) {
+	testCases := []struct {
+		rank  Rank
+		moves int
+		color Color
+	}{
+		{RANK_Bomb, 0, COLOR_red},
+		{RANK_Marshal, 1, COLOR_blue},
+		{RANK_General, 1, COLOR_red},
+		{RANK_Colonel, 1, COLOR_blue},
+		{RANK_Major, 1, COLOR_red},
+		{RANK_Captain, 1, COLOR_red},
+		{RANK_Lieutenant, 1, COLOR_blue},
+		{RANK_Sergent, 1, COLOR_red},
+		{RANK_Minor, 1, COLOR_red},
+		{RANK_Scout, 9, COLOR_blue},
+		{RANK_Spy, 1, COLOR_red},
+		{RANK_Flag, 0, COLOR_red},
 	}
 
-	assert.Equal(t, RANK_Bomb, got.Rank)
-	assert.Equal(t, "Bomb", got.getName())
-	assert.Equal(t, 42, got.MaxMoves)
+	for _, tc := range testCases {
+		piece := CreatePiece(tc.color, tc.rank)
+
+		assert.Equal(t, tc.rank, piece.GetRank())
+		assert.Equal(t, tc.moves, piece.GetMaxMoves())
+		assert.Equal(t, tc.color, piece.GetColor())
+	}
+}
+
+func TestPiece(t *testing.T) {
+	got := Piece{
+		rank:     RANK_Bomb,
+		maxMoves: 42,
+	}
+
+	assert.Equal(t, RANK_Bomb, got.GetRank())
+	assert.Equal(t, "Bomb", got.GetName())
+	assert.Equal(t, 42, got.GetMaxMoves())
 }
 
 func TestAttackPiece(t *testing.T) {
@@ -34,8 +63,8 @@ func TestAttackPiece(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		attacker := CreatePiece(nil, tc.attacker)
-		attackee := CreatePiece(nil, tc.attackee)
+		attacker := CreatePiece(COLOR_red, tc.attacker)
+		attackee := CreatePiece(COLOR_red, tc.attackee)
 
 		winner, err := attacker.Attack(attackee)
 
