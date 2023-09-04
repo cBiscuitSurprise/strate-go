@@ -6,13 +6,13 @@ import (
 	"github.com/cBiscuitSurprise/strate-go/internal/pieces"
 )
 
-const BOARD_SIZE uint8 = 10
-const BOARD_SIZE_X uint8 = BOARD_SIZE
-const BOARD_SIZE_Y uint8 = BOARD_SIZE
+const BOARD_SIZE int = 10
+const BOARD_SIZE_X int = BOARD_SIZE
+const BOARD_SIZE_Y int = BOARD_SIZE
 
 type Position struct {
-	R uint8
-	C uint8
+	R int
+	C int
 }
 
 type Square struct {
@@ -37,8 +37,8 @@ func (s *Square) IsPlayable() bool {
 }
 
 type BoardSize struct {
-	Rows    uint8
-	Columns uint8
+	Rows    int
+	Columns int
 }
 
 type Board struct {
@@ -67,6 +67,33 @@ func (b *Board) GetSquare(position Position) *Square {
 
 func (b *Board) RemovePiece(position Position) {
 	b.squares[position.R][position.C].RemovePiece()
+}
+
+func (b *Board) CheckNeighboringSquares(position Position, stop func(d int, p Position, s *Square) (stop bool)) {
+	for i := 1; i < b.GetSize().Rows; i++ {
+		p := b.lookForward(position, i)
+		if p == nil || stop(i, *p, b.GetSquare(*p)) {
+			break
+		}
+	}
+	for i := 1; i < b.GetSize().Rows; i++ {
+		p := b.lookBackward(position, i)
+		if p == nil || stop(i, *p, b.GetSquare(*p)) {
+			break
+		}
+	}
+	for i := 1; i < b.GetSize().Columns; i++ {
+		p := b.lookRight(position, i)
+		if p == nil || stop(i, *p, b.GetSquare(*p)) {
+			break
+		}
+	}
+	for i := 1; i < b.GetSize().Columns; i++ {
+		p := b.lookLeft(position, i)
+		if p == nil || stop(i, *p, b.GetSquare(*p)) {
+			break
+		}
+	}
 }
 
 func (b *Board) PlacePiece(piece *pieces.Piece, position Position) *game_errors.GameError {
@@ -158,4 +185,36 @@ func (b *Board) MovePiece(from Position, to Position) ([]*pieces.Piece, *game_er
 	}
 
 	return losingPieces, nil
+}
+
+func (b *Board) lookForward(from Position, count int) *Position {
+	n := from.R + count
+	if n >= b.GetSize().Rows {
+		return nil
+	}
+	return &Position{R: n, C: from.C}
+}
+
+func (b *Board) lookBackward(from Position, count int) *Position {
+	n := from.R - count
+	if n < 0 {
+		return nil
+	}
+	return &Position{R: n, C: from.C}
+}
+
+func (b *Board) lookRight(from Position, count int) *Position {
+	n := from.C + count
+	if n >= b.GetSize().Columns {
+		return nil
+	}
+	return &Position{R: from.R, C: n}
+}
+
+func (b *Board) lookLeft(from Position, count int) *Position {
+	n := from.C - count
+	if n < 0 {
+		return nil
+	}
+	return &Position{R: from.R, C: n}
 }

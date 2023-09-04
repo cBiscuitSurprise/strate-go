@@ -8,6 +8,7 @@ import (
 	"github.com/cBiscuitSurprise/strate-go/internal/core"
 	"github.com/cBiscuitSurprise/strate-go/internal/game"
 	"github.com/cBiscuitSurprise/strate-go/internal/pieces"
+	"github.com/cBiscuitSurprise/strate-go/internal/storage"
 	"github.com/cBiscuitSurprise/strate-go/internal/util"
 	"google.golang.org/grpc/metadata"
 )
@@ -33,9 +34,9 @@ func (s *strateGoServer) NewGame(ctx context.Context, request *pb.NewGameRequest
 	}
 
 	rows := []*pb.Row{}
-	for r := uint8(0); r < g.Board.GetSize().Rows; r++ {
+	for r := 0; r < g.Board.GetSize().Rows; r++ {
 		row := &pb.Row{Columns: []*pb.Square{}}
-		for c := uint8(0); c < g.Board.GetSize().Columns; c++ {
+		for c := 0; c < g.Board.GetSize().Columns; c++ {
 			square := g.Board.GetSquare(game.Position{R: r, C: c})
 
 			pbSquare := &pb.Square{Playable: square.IsPlayable()}
@@ -68,7 +69,7 @@ func (s *strateGoServer) NewGame(ctx context.Context, request *pb.NewGameRequest
 		Rows:       rows,
 	}
 
-	// storage.SaveGame(g.GetId(), g)
+	storage.SaveGame(g.GetId(), g)
 
 	return &pb.NewGameResponse{
 		Game: &pb.Game{

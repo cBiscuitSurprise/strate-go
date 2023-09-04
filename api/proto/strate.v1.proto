@@ -15,6 +15,8 @@ service StrateGo {
   
   // #region Game
   rpc NewGame(NewGameRequest) returns (NewGameResponse) {}
+  rpc PlanGame(stream PlanGameRequest) returns (stream PlanGameResponse) {}
+  rpc PlayGame(stream PlayGameRequest) returns (stream PlayGameResponse) {}
   // #endregion Game
 }
 
@@ -63,9 +65,79 @@ message NewGameRequest {}
 message NewGameResponse {
   Game game = 1;
 }
+
+/**
+> Select piece
+  < Valid placement
+> Select placement
+  < Updated history
+  < Updated active player
+
+< Updated history (from other player's move)
+
+
+History
+  Mode: Planning/Playing
+  Player: Red/Blue
+  From: Bench/Position
+  To: Position/Bench
+
+  planning
+*/
+message History {
+  GameState mode = 1;
+  string selectedPieceId = 2;
+  Position to = 3;
+  optional string capturedPieceId = 4;
+}
+
+enum PlanGameRequestCommand {
+  PlanGameRequestCommand_PICK_PIECE = 0;
+  PlanGameRequestCommand_PLACE_PIECE = 1;
+  PlanGameRequestCommand_UNDO = 2;
+  PlanGameRequestCommand_REDO = 3;
+  PlanGameRequestCommand_RESET = 100;
+  PlanGameRequestCommand_READY = 200;
+}
+
+message PlanGameRequest {
+  string gameId = 1;
+  PlanGameRequestCommand command = 2;
+  optional string selectedPieceId = 3;
+  optional Position selectedPosition = 4;
+}
+
+message PlanGameResponse {
+  repeated Position validPlacements = 1;
+  repeated History history = 2;
+}
+
+enum PlayGameRequestCommand {
+  PlayGameRequestCommand_PICK_PIECE = 0;
+  PlayGameRequestCommand_PLACE_PIECE = 1;
+  PlayGameRequestCommand_FOREFEIT = 2;
+}
+
+message PlayGameRequest {
+  string gameId = 1;
+  PlayGameRequestCommand command = 2;
+  optional Position selectedPiecePosition = 3;
+  optional Position selectedPlacement = 4;
+}
+
+message PlayGameResponse {
+  bool redPlayerActive = 1;
+  repeated Position validPlacements = 2;
+  repeated History history = 3;
+}
 // #endregion Game
 
 // #region Board
+message Position {
+  uint32 row = 1;
+  uint32 column = 2;
+}
+
 message Piece {
   string id = 1;
   uint32 rank = 2;

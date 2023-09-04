@@ -157,3 +157,30 @@ func TestBoardMovePiece(t *testing.T) {
 	assert.Nil(t, board.GetSquare(Position{4, 4}).GetPiece())
 	assert.Nil(t, board.GetSquare(Position{4, 5}).GetPiece())
 }
+
+func TestCheckNeighbors(t *testing.T) {
+	board := Board{}
+
+	radius := 4
+	visited := []Position{}
+	stopFn := func(distance int, to Position, s *Square) (stop bool) {
+		visited = append(visited, to)
+		return distance > radius-1
+	}
+
+	/* Search 4 spaces in every direction
+	|  |  |  |  |  |  |  |  |  |  |
+	|  |  |  |  |  |  |  |  |  |  |
+	|  |  |  |  |  |  |  |  |  |  |
+	|  |  |  |  |  |  |  |  |  |  |
+	|  |  |oo|  |  |  |  |  |  |  |
+	|  |  |oo|  |  |  |  |  |  |  |
+	|  |  |oo|  |  |  |  |  |  |  |
+	|  |  |oo|  |  |  |  |  |  |  |
+	|oo|oo|st|oo|oo|oo|oo|  |  |  |
+	|  |  |oo|  |  |  |  |  |  |  |
+	*/
+	board.CheckNeighboringSquares(Position{R: 1, C: 2}, stopFn)
+
+	assert.Len(t, visited, 11)
+}

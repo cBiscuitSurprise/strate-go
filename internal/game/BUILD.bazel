@@ -23,7 +23,10 @@ go_library(
 
 go_test(
     name = "game_test",
-    srcs = ["board_test.go"],
+    srcs = [
+        "board_test.go",
+        "game_test.go",
+    ],
     embed = [":game"],
     deps = [
         "//internal/core",

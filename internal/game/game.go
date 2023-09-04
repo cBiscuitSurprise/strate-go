@@ -39,8 +39,52 @@ func (g *Game) GetId() string {
 	return g.id
 }
 
-func (g *Game) GetPlayer(id string) (*GamePlayer, error) {
-	return g.players[id], nil
+func (g *Game) GetPlayer(id string) *GamePlayer {
+	return g.players[id]
+}
+
+func (g *Game) GetMode() GameMode {
+	return g.mode
+}
+
+func (g *Game) SetMode(mode GameMode) {
+	g.mode = mode
+}
+
+func (g *Game) GetValidMovesFromPosition(player_id string, from Position) []Position {
+	piece := g.Board.GetSquare(from).GetPiece()
+
+	validMoves := []Position{}
+	if piece == nil {
+		return validMoves
+	}
+
+	if piece.GetMaxMoves() == 0 {
+		return validMoves
+	}
+
+	findValidMove := func(distance int, to Position, s *Square) (stop bool) {
+		if distance > piece.GetMaxMoves()-1 {
+			stop = true
+		}
+		if s.IsPlayable() {
+			if s.GetPiece() == nil {
+				validMoves = append(validMoves, to)
+			} else {
+				if s.GetPiece().GetColor() != piece.GetColor() {
+					validMoves = append(validMoves, to)
+				}
+				stop = true
+			}
+		} else {
+			stop = true
+		}
+		return stop
+	}
+
+	g.Board.CheckNeighboringSquares(from, findValidMove)
+
+	return validMoves
 }
 
 func (g *Game) PlacePiece(player_id string, piece_id string, position Position) *game_errors.GameError {
@@ -60,7 +104,7 @@ func (g *Game) PlacePiece(player_id string, piece_id string, position Position) 
 	} else {
 		return game_errors.GameErrorf(
 			game_errors.ERROR_Game_InvalidPiece,
-			"piece, '%s', does not belong to player, '%s'!", piece_id,
+			"piece, '%s', does not belong to player, '%s'!", piece_id, player_id,
 		)
 	}
 }
@@ -80,12 +124,12 @@ func (g *Game) MovePiece(player_id string, from Position, to Position) *game_err
 	if fromPiece == nil {
 		return game_errors.GameErrorf(
 			game_errors.ERROR_Game_InvalidPiece,
-			"no piece at position!", from,
+			"no piece at position, %v!", from,
 		)
 	} else if fromPiece.GetColor() != playerColor {
 		return game_errors.GameErrorf(
 			game_errors.ERROR_Game_InvalidPiece,
-			"piece, '%s', does not belong to player, '%s'!", g.Board.GetSquare(from).GetPiece(), player_id,
+			"piece, '%v', does not belong to player, '%s'!", fromPiece, player_id,
 		)
 	}
 
@@ -94,7 +138,7 @@ func (g *Game) MovePiece(player_id string, from Position, to Position) *game_err
 	if toPiece != nil && toPiece.GetColor() == playerColor {
 		return game_errors.GameErrorf(
 			game_errors.ERROR_Game_InvalidPiece,
-			"piece, '%s', already belongs to player, '%s', invalid move!", toPiece, player_id,
+			"piece, '%v', already belongs to player, '%s', invalid move!", toPiece, player_id,
 		)
 	}
 
