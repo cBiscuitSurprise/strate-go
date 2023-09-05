@@ -18,6 +18,7 @@ go_library(
         "game.go",
         "piece.go",
         "position.go",
+        "util.go",
     ],
     importpath = "github.com/cBiscuitSurprise/strate-go/internal/web/apiadapter",
     visibility = ["//:__subpackages__"],

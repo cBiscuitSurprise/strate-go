@@ -5,6 +5,7 @@ import (
 	game_errors "github.com/cBiscuitSurprise/strate-go/internal/errors"
 	"github.com/cBiscuitSurprise/strate-go/internal/pieces"
 	"github.com/cBiscuitSurprise/strate-go/internal/util"
+	"github.com/rs/zerolog/log"
 )
 
 type Game struct {
@@ -39,10 +40,6 @@ func (g *Game) GetId() string {
 	return g.id
 }
 
-func (g *Game) GetPlayer(id string) *GamePlayer {
-	return g.players[id]
-}
-
 func (g *Game) GetMode() GameMode {
 	return g.mode
 }
@@ -51,10 +48,20 @@ func (g *Game) SetMode(mode GameMode) {
 	g.mode = mode
 }
 
-func (g *Game) GetValidMovesFromPosition(player_id string, from Position) []Position {
+func (g *Game) GetPlayerWithId(id string) *GamePlayer {
+	for _, p := range g.players {
+		log.Trace().Str("id", id).Str("player-id", p.player.GetId()).Msg("here")
+		if p.player.GetId() == id {
+			return p
+		}
+	}
+	return nil
+}
+
+func (g *Game) GetValidMovesFromPosition(player_id string, from Position) []*Position {
 	piece := g.Board.GetSquare(from).GetPiece()
 
-	validMoves := []Position{}
+	validMoves := []*Position{}
 	if piece == nil {
 		return validMoves
 	}
@@ -69,10 +76,10 @@ func (g *Game) GetValidMovesFromPosition(player_id string, from Position) []Posi
 		}
 		if s.IsPlayable() {
 			if s.GetPiece() == nil {
-				validMoves = append(validMoves, to)
+				validMoves = append(validMoves, &to)
 			} else {
 				if s.GetPiece().GetColor() != piece.GetColor() {
-					validMoves = append(validMoves, to)
+					validMoves = append(validMoves, &to)
 				}
 				stop = true
 			}
@@ -119,8 +126,17 @@ func (g *Game) MovePiece(player_id string, from Position, to Position) (MovePiec
 
 	playerColor := g.players[player_id].GetColor()
 
-	// player needs to own `from` piece
 	fromPiece := g.Board.GetSquare(from).GetPiece()
+
+	// fromPiece needs to be movable
+	if fromPiece.GetMaxMoves() == 0 {
+		return emptyMovePieceResponse, game_errors.GameErrorf(
+			game_errors.ERROR_Game_InvalidPiece,
+			"can't move piece, %s, at position (max-moves == 0), %v!", fromPiece.GetRank().String(), from,
+		)
+	}
+
+	// player needs to own `from` piece
 	if fromPiece == nil {
 		return emptyMovePieceResponse, game_errors.GameErrorf(
 			game_errors.ERROR_Game_InvalidPiece,

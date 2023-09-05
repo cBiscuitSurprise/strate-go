@@ -9,17 +9,13 @@ import (
 	"github.com/cBiscuitSurprise/strate-go/internal/game"
 	"github.com/cBiscuitSurprise/strate-go/internal/storage"
 	"github.com/cBiscuitSurprise/strate-go/internal/web/apiadapter"
-	"google.golang.org/grpc/metadata"
 )
 
 func (s *strateGoServer) NewGame(ctx context.Context, request *pb.NewGameRequest) (*pb.NewGameResponse, error) {
-	userId := ""
-	if md, ok := metadata.FromIncomingContext(ctx); !ok {
-		return nil, fmt.Errorf("no user-id provided, can't play game")
-	} else {
-		userId = md["x-stratego-user-id"][0]
-	}
+	return requireUserIdDecorator[pb.NewGameRequest, pb.NewGameResponse](ctx, newGameHandler, request)
+}
 
+func newGameHandler(userId string, request *pb.NewGameRequest) (*pb.NewGameResponse, error) {
 	red := core.HydratePlayer(userId)
 	blue := core.NewPlayer()
 

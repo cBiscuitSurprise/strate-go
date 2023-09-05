@@ -8,7 +8,6 @@ import (
 	"github.com/cBiscuitSurprise/strate-go/internal/storage"
 	"github.com/cBiscuitSurprise/strate-go/internal/web/apiadapter"
 	"github.com/rs/zerolog/log"
-	"google.golang.org/grpc/metadata"
 )
 
 type playGameState struct {
@@ -44,25 +43,23 @@ func (s *playGameState) SwitchPlayers() {
 }
 
 func (s *strateGoServer) PlayGame(stream pb.StrateGo_PlayGameServer) error {
-	userId := ""
-	if md, ok := metadata.FromIncomingContext(stream.Context()); !ok {
-		return fmt.Errorf("no user-id provided, can't play game")
-	} else {
-		userId = md["x-stratego-user-id"][0]
-	}
+	_, err := requireUserIdDecorator[pb.StrateGo_PlayGameServer, dummy](stream.Context(), playGameHandler, &stream)
+	return err
+}
 
+func playGameHandler(userId string, stream *pb.StrateGo_PlayGameServer) (*dummy, error) {
 	state := &playGameState{
 		userId: userId,
 	}
 
 	handler := StreamingRequestHandler[pb.PlayGameRequest, pb.PlayGameResponse, playGameState]{
-		stream:    stream,
+		stream:    *stream,
 		state:     state,
 		process:   handlePlayGameRequest,
 		terminate: handlePlayGameTermination,
 	}
 
-	return handler.Listen()
+	return nil, handler.Listen()
 }
 
 func handlePlayGameRequest(request *pb.PlayGameRequest, state *playGameState) (*pb.PlayGameResponse, error) {
@@ -73,6 +70,7 @@ func handlePlayGameRequest(request *pb.PlayGameRequest, state *playGameState) (*
 				Msgf("failed to resolve game with id, '%s'", request.GetGameId())
 			return &pb.PlayGameResponse{
 				RedPlayerActive: state.IsRedPlayerActive(),
+				Error:           fmt.Sprintf("failed to resolve game with id, '%s'", request.GetGameId()),
 			}, nil
 		}
 	}
@@ -99,14 +97,9 @@ func handlePlayGamePickPiece(request *pb.PlayGameRequest, state *playGameState) 
 		apiadapter.ApiPositionToGamePosition(request.GetSelectedPiecePosition()),
 	)
 
-	validPlacementsOut := make([]*pb.Position, len(validPlacements))
-	for i, p := range validPlacements {
-		validPlacementsOut[i] = apiadapter.GamePositionToApiPosition(p)
-	}
-
 	return &pb.PlayGameResponse{
 		RedPlayerActive: state.IsRedPlayerActive(),
-		ValidPlacements: validPlacementsOut,
+		ValidPlacements: apiadapter.MapConvert[game.Position, pb.Position](validPlacements, apiadapter.GamePositionToApiPosition),
 	}, nil
 }
 
@@ -122,7 +115,7 @@ func handlePlayGameMovePiece(request *pb.PlayGameRequest, state *playGameState) 
 
 		return &pb.PlayGameResponse{
 			RedPlayerActive: state.IsRedPlayerActive(),
-			Error:           "failed to move piece",
+			Error:           err.Error(),
 		}, nil
 	} else {
 		state.SwitchPlayers()

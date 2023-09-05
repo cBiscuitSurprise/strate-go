@@ -10,6 +10,7 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/web/stratego_rpc",
+        "@com_github_rs_zerolog//:zerolog",
         "@com_github_rs_zerolog//log",
         "@org_golang_google_grpc//:go_default_library",
         "@org_golang_google_grpc//credentials",

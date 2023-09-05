@@ -4,21 +4,21 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cBiscuitSurprise/strate-go/internal/game"
+	"github.com/rs/zerolog/log"
 )
 
-type gameRecord struct {
-	value *game.Game
+type Record[V interface{}] struct {
+	value *V
 	time  int64
 }
 
-type TtlCache struct {
-	cache map[string]*gameRecord
+type TtlCache[K string, V interface{}] struct {
+	cache map[K]*Record[V]
 	lock  sync.Mutex
 }
 
-func NewTtlCache(initLen int, ttl int) (m *TtlCache) {
-	m = &TtlCache{cache: make(map[string]*gameRecord, initLen)}
+func NewTtlCache[K string, V interface{}](initLen int, ttl int) (m *TtlCache[K, V]) {
+	m = &TtlCache[K, V]{cache: make(map[K]*Record[V], initLen)}
 	go func() {
 		for now := range time.Tick(time.Second) {
 			m.lock.Lock()
@@ -33,17 +33,24 @@ func NewTtlCache(initLen int, ttl int) (m *TtlCache) {
 	return
 }
 
-func (m *TtlCache) Len() int {
+func (m *TtlCache[K, V]) Len() int {
 	return len(m.cache)
 }
 
-func (m *TtlCache) Put(id string, value *game.Game) {
+func (m *TtlCache[K, V]) ForEach(callback func(key K, value *V)) {
+	log.Trace().Msg("here")
+	for k, r := range m.cache {
+		callback(k, r.value)
+	}
+}
+
+func (m *TtlCache[K, V]) Put(id K, value *V) {
 	m.lock.Lock()
 	now := time.Now().Unix()
 	if record, ok := m.cache[id]; ok {
 		record.time = time.Now().Unix()
 	} else {
-		record = &gameRecord{
+		record = &Record[V]{
 			value: value,
 			time:  now,
 		}
@@ -52,7 +59,7 @@ func (m *TtlCache) Put(id string, value *game.Game) {
 	m.lock.Unlock()
 }
 
-func (m *TtlCache) Get(id string) (value *game.Game) {
+func (m *TtlCache[K, V]) Get(id K) (value *V) {
 	m.lock.Lock()
 	if it, ok := m.cache[id]; ok {
 		value = it.value

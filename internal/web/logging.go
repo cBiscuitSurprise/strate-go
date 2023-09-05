@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -24,7 +25,7 @@ func UnaryRequestLogger(ctx context.Context, req interface{}, info *grpc.UnarySe
 			Msgf("failed to get request metdata")
 	}
 
-	requestInfo := logServerCommand(md, info.FullMethod, "handling request")
+	requestInfo := logServerCommand(log.Debug, md, info.FullMethod, "handling request")
 
 	resp, err = handler(ctx, req)
 
@@ -43,10 +44,10 @@ type streamRequestLoggerStreamWrapper struct {
 }
 
 func (s *streamRequestLoggerStreamWrapper) RecvMsg(m interface{}) error {
-	info := logServerCommand(s.Metadata, s.FullMethod, "receiving request")
+	info := logServerCommand(log.Debug, s.Metadata, s.FullMethod, "receiving request")
 	if err := s.ServerStream.RecvMsg(m); err != nil {
 		if err == io.EOF {
-			logServerCommand(s.Metadata, s.FullMethod, "closed the stream (client)")
+			logServerCommand(log.Info, s.Metadata, s.FullMethod, "closed the stream (client)")
 		} else {
 			logError(err, s.FullMethod, info, "error sending response")
 		}
@@ -56,10 +57,10 @@ func (s *streamRequestLoggerStreamWrapper) RecvMsg(m interface{}) error {
 }
 
 func (s *streamRequestLoggerStreamWrapper) SendMsg(m interface{}) error {
-	info := logServerCommand(s.Metadata, s.FullMethod, "sending response")
+	info := logServerCommand(log.Debug, s.Metadata, s.FullMethod, "sending response")
 	if err := s.ServerStream.SendMsg(m); err != nil {
 		if err == io.EOF {
-			logServerCommand(s.Metadata, s.FullMethod, "closed the stream (server)")
+			logServerCommand(log.Info, s.Metadata, s.FullMethod, "closed the stream (server)")
 		} else {
 			logError(err, s.FullMethod, info, "error sending response")
 		}
@@ -88,13 +89,13 @@ func StreamRequestLogger(srv interface{}, ss grpc.ServerStream, info *grpc.Strea
 	return handler(srv, wrapper)
 }
 
-func logServerCommand(md metadata.MD, fullMethod string, msg string, parts ...any) RequestInfo {
+func logServerCommand(logger func() *zerolog.Event, md metadata.MD, fullMethod string, msg string, parts ...any) RequestInfo {
 	output := RequestInfo{
 		RequestId: strings.Join(md["x-request-id"], ", "),
 		UserId:    strings.Join(md["x-stratego-user-id"], ", "),
 	}
 
-	log.Info().
+	logger().
 		Str("FullMethod", fullMethod).
 		Str("RequestId", output.RequestId).
 		Str("UserId", output.UserId).

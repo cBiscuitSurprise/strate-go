@@ -17,10 +17,10 @@ func TestNewGame(t *testing.T) {
 
 	assert.NotEmpty(t, g.GetId())
 
-	assert.Equal(t, g.GetPlayer(p1.GetId()).player.GetId(), p1.GetId())
-	assert.Equal(t, g.GetPlayer(p1.GetId()).color, pieces.COLOR_red)
-	assert.Equal(t, g.GetPlayer(p2.GetId()).player.GetId(), p2.GetId())
-	assert.Equal(t, g.GetPlayer(p2.GetId()).color, pieces.COLOR_blue)
+	assert.Equal(t, g.GetPlayerWithId(p1.GetId()).player.GetId(), p1.GetId())
+	assert.Equal(t, g.GetPlayerWithId(p1.GetId()).color, pieces.COLOR_red)
+	assert.Equal(t, g.GetPlayerWithId(p2.GetId()).player.GetId(), p2.GetId())
+	assert.Equal(t, g.GetPlayerWithId(p2.GetId()).color, pieces.COLOR_blue)
 }
 
 func TestGamePlacement(t *testing.T) {

@@ -15,6 +15,8 @@ service StrateGo {
   
   // #region Game
   rpc NewGame(NewGameRequest) returns (NewGameResponse) {}
+  rpc ListGames(ListGamesRequest) returns (ListGamesResponse) {}
+  rpc GetGame(GetGameRequest) returns (GetGameResponse) {}
   rpc PlanGame(stream PlanGameRequest) returns (stream PlanGameResponse) {}
   rpc PlayGame(stream PlayGameRequest) returns (stream PlayGameResponse) {}
   // #endregion Game
@@ -53,6 +55,12 @@ enum GameState {
   GameState_ERROR = 90;    // game has errored
 }
 
+message GameInfo {
+  string id = 1;
+  GameState state = 2;
+  repeated string player_ids = 3;
+}
+
 message Game {
   string id = 1;
   GameState state = 2;
@@ -63,6 +71,20 @@ message Game {
 message NewGameRequest {}
 
 message NewGameResponse {
+  Game game = 1;
+}
+
+message ListGamesRequest {}
+
+message ListGamesResponse {
+  repeated GameInfo games = 1;
+}
+
+message GetGameRequest {
+  string gameId = 1;
+}
+
+message GetGameResponse {
   Game game = 1;
 }
 
