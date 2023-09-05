@@ -65,6 +65,10 @@ func (b *Board) GetSquare(position Position) *Square {
 	return b.squares[position.R][position.C]
 }
 
+func (b *Board) Rows() [BOARD_SIZE_X][BOARD_SIZE_Y]*Square {
+	return b.squares
+}
+
 func (b *Board) RemovePiece(position Position) {
 	b.squares[position.R][position.C].RemovePiece()
 }

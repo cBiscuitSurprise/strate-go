@@ -66,24 +66,6 @@ message NewGameResponse {
   Game game = 1;
 }
 
-/**
-> Select piece
-  < Valid placement
-> Select placement
-  < Updated history
-  < Updated active player
-
-< Updated history (from other player's move)
-
-
-History
-  Mode: Planning/Playing
-  Player: Red/Blue
-  From: Bench/Position
-  To: Position/Bench
-
-  planning
-*/
 message History {
   GameState mode = 1;
   string selectedPieceId = 2;
@@ -110,11 +92,12 @@ message PlanGameRequest {
 message PlanGameResponse {
   repeated Position validPlacements = 1;
   repeated History history = 2;
+  string error = 16;
 }
 
 enum PlayGameRequestCommand {
   PlayGameRequestCommand_PICK_PIECE = 0;
-  PlayGameRequestCommand_PLACE_PIECE = 1;
+  PlayGameRequestCommand_MOVE_PIECE = 1;
   PlayGameRequestCommand_FOREFEIT = 2;
 }
 
@@ -128,7 +111,9 @@ message PlayGameRequest {
 message PlayGameResponse {
   bool redPlayerActive = 1;
   repeated Position validPlacements = 2;
-  repeated History history = 3;
+  bool success = 3;
+  repeated string removedPieceIds = 4;
+  string error = 16;
 }
 // #endregion Game
 

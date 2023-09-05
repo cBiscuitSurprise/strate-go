@@ -2,12 +2,12 @@ package stratego_rpc
 
 import (
 	"fmt"
-	"io"
 
 	pb "github.com/cBiscuitSurprise/strate-go/api/go/strategopb"
 	"github.com/cBiscuitSurprise/strate-go/internal/game"
 	"github.com/cBiscuitSurprise/strate-go/internal/storage"
 	"github.com/cBiscuitSurprise/strate-go/internal/web/apiadapter"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -19,6 +19,20 @@ type playGameState struct {
 
 func (s *playGameState) GetGame() *game.Game {
 	return s.game
+}
+
+func (s *playGameState) ResolveGame(gameId string) error {
+	if g, err := storage.GetGame(gameId); err == nil {
+		if g == nil {
+			return fmt.Errorf("no game found with id, '%s'", gameId)
+		}
+		// TODO: this needs to be moved to the game itself
+		g.SetMode(game.GAMEMODE_Play)
+		s.game = g
+		return nil
+	} else {
+		return err
+	}
 }
 
 func (s *playGameState) IsRedPlayerActive() bool {
@@ -41,67 +55,53 @@ func (s *strateGoServer) PlayGame(stream pb.StrateGo_PlayGameServer) error {
 		userId: userId,
 	}
 
-	for {
-		in, err := stream.Recv()
-		if err == io.EOF {
-			if response, err := handlePlayGameTermination(state); err != nil {
-				return err
-			} else {
-				if err := stream.Send(response); err != nil {
-					return err
-				}
-			}
-		} else if err != nil {
-			return err
-		}
-
-		if response, err := handlePlayGameRequest(in, state); err != nil {
-			return err
-		} else {
-			if err := stream.Send(response); err != nil {
-				return err
-			}
-		}
+	handler := StreamingRequestHandler[pb.PlayGameRequest, pb.PlayGameResponse, playGameState]{
+		stream:    stream,
+		state:     state,
+		process:   handlePlayGameRequest,
+		terminate: handlePlayGameTermination,
 	}
+
+	return handler.Listen()
 }
 
 func handlePlayGameRequest(request *pb.PlayGameRequest, state *playGameState) (*pb.PlayGameResponse, error) {
 	if state.game == nil {
-		if g, err := storage.GetGame(request.GetGameId()); err == nil {
-			state = &playGameState{
-				game:   g,
-				userId: state.userId,
-			}
-		} else {
-			return nil, fmt.Errorf("failed to load game: %s", request.GetGameId())
+		if err := state.ResolveGame(request.GetGameId()); err != nil {
+			log.Warn().
+				Err(err).
+				Msgf("failed to resolve game with id, '%s'", request.GetGameId())
+			return &pb.PlayGameResponse{
+				RedPlayerActive: state.IsRedPlayerActive(),
+			}, nil
 		}
 	}
 
 	switch request.GetCommand() {
 	case pb.PlayGameRequestCommand_PlayGameRequestCommand_PICK_PIECE:
 		return handlePlayGamePickPiece(request, state)
-	case pb.PlayGameRequestCommand_PlayGameRequestCommand_PLACE_PIECE:
-		return handlePlayGamePlacePiece(request, state)
+	case pb.PlayGameRequestCommand_PlayGameRequestCommand_MOVE_PIECE:
+		return handlePlayGameMovePiece(request, state)
 	}
 
 	return &pb.PlayGameResponse{
-		RedPlayerActive: true,
+		RedPlayerActive: state.IsRedPlayerActive(),
 	}, nil
 }
 
-func handlePlayGameTermination(state *playGameState) (*pb.PlayGameResponse, error) {
+func handlePlayGameTermination(request *pb.PlayGameRequest, state *playGameState) (*pb.PlayGameResponse, error) {
 	return &pb.PlayGameResponse{}, nil
 }
 
 func handlePlayGamePickPiece(request *pb.PlayGameRequest, state *playGameState) (*pb.PlayGameResponse, error) {
 	validPlacements := state.GetGame().GetValidMovesFromPosition(
 		state.userId,
-		apiadapter.ToGamePosition(request.GetSelectedPiecePosition()),
+		apiadapter.ApiPositionToGamePosition(request.GetSelectedPiecePosition()),
 	)
 
-	var validPlacementsOut []*pb.Position
-	for _, p := range validPlacements {
-		validPlacementsOut = append(validPlacementsOut, apiadapter.ToApiPosition(p))
+	validPlacementsOut := make([]*pb.Position, len(validPlacements))
+	for i, p := range validPlacements {
+		validPlacementsOut[i] = apiadapter.GamePositionToApiPosition(p)
 	}
 
 	return &pb.PlayGameResponse{
@@ -110,6 +110,32 @@ func handlePlayGamePickPiece(request *pb.PlayGameRequest, state *playGameState) 
 	}, nil
 }
 
-func handlePlayGamePlacePiece(request *pb.PlayGameRequest, state *playGameState) (*pb.PlayGameResponse, error) {
-	return nil, nil
+func handlePlayGameMovePiece(request *pb.PlayGameRequest, state *playGameState) (*pb.PlayGameResponse, error) {
+	if removed, err := state.game.MovePiece(
+		state.userId,
+		apiadapter.ApiPositionToGamePosition(request.GetSelectedPiecePosition()),
+		apiadapter.ApiPositionToGamePosition(request.GetSelectedPlacement()),
+	); err != nil {
+		log.Error().
+			Err(err).
+			Msg("failed to move piece")
+
+		return &pb.PlayGameResponse{
+			RedPlayerActive: state.IsRedPlayerActive(),
+			Success:         false,
+		}, nil
+	} else {
+		state.SwitchPlayers()
+
+		removedOut := make([]string, len(removed))
+		for i, r := range removed {
+			removedOut[i] = r.GetId()
+		}
+
+		return &pb.PlayGameResponse{
+			RedPlayerActive: state.IsRedPlayerActive(),
+			Success:         true,
+			RemovedPieceIds: removedOut,
+		}, nil
+	}
 }

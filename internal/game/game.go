@@ -109,9 +109,9 @@ func (g *Game) PlacePiece(player_id string, piece_id string, position Position) 
 	}
 }
 
-func (g *Game) MovePiece(player_id string, from Position, to Position) *game_errors.GameError {
+func (g *Game) MovePiece(player_id string, from Position, to Position) ([]*pieces.Piece, *game_errors.GameError) {
 	if g.mode != GAMEMODE_Play {
-		return game_errors.GameErrorf(
+		return nil, game_errors.GameErrorf(
 			game_errors.ERROR_Game_InvalidMode,
 			"game is not in playing mode, cannot proceed (%s)", g.mode.String(),
 		)
@@ -122,12 +122,12 @@ func (g *Game) MovePiece(player_id string, from Position, to Position) *game_err
 	// player needs to own `from` piece
 	fromPiece := g.Board.GetSquare(from).GetPiece()
 	if fromPiece == nil {
-		return game_errors.GameErrorf(
+		return nil, game_errors.GameErrorf(
 			game_errors.ERROR_Game_InvalidPiece,
 			"no piece at position, %v!", from,
 		)
 	} else if fromPiece.GetColor() != playerColor {
-		return game_errors.GameErrorf(
+		return nil, game_errors.GameErrorf(
 			game_errors.ERROR_Game_InvalidPiece,
 			"piece, '%v', does not belong to player, '%s'!", fromPiece, player_id,
 		)
@@ -136,15 +136,11 @@ func (g *Game) MovePiece(player_id string, from Position, to Position) *game_err
 	// player can't to own `to` piece
 	toPiece := g.Board.GetSquare(to).GetPiece()
 	if toPiece != nil && toPiece.GetColor() == playerColor {
-		return game_errors.GameErrorf(
+		return nil, game_errors.GameErrorf(
 			game_errors.ERROR_Game_InvalidPiece,
 			"piece, '%v', already belongs to player, '%s', invalid move!", toPiece, player_id,
 		)
 	}
 
-	if _, err := g.Board.MovePiece(from, to); err == nil {
-		return nil
-	} else {
-		return err
-	}
+	return g.Board.MovePiece(from, to)
 }

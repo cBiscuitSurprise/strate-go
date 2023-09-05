@@ -13,11 +13,18 @@ go_library(
 
 go_library(
     name = "apiadapter",
-    srcs = ["position.go"],
+    srcs = [
+        "board.go",
+        "game.go",
+        "piece.go",
+        "position.go",
+    ],
     importpath = "github.com/cBiscuitSurprise/strate-go/internal/web/apiadapter",
     visibility = ["//:__subpackages__"],
     deps = [
         "//api/proto:strategopb",
         "//internal/game",
+        "//internal/pieces",
+        "//internal/util",
     ],
 )

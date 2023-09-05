@@ -1,7 +1,6 @@
 package stratego_rpc
 
 import (
-	"io"
 	"time"
 
 	pb "github.com/cBiscuitSurprise/strate-go/api/go/strategopb"
@@ -14,57 +13,40 @@ type longPingState struct {
 }
 
 func (s *strateGoServer) LongPing(stream pb.StrateGo_LongPingServer) error {
-	state := longPingState{
+	state := &longPingState{
 		Prepend:        "[p] ",
 		PreprendLittle: true,
 	}
 
-	for {
-		in, err := stream.Recv()
-		if err == io.EOF {
-			if response, err := handleLongPingTermination(state); err != nil {
-				return err
-			} else {
-				if err := stream.Send(response); err != nil {
-					return err
-				}
-			}
-			return nil
-		} else if err != nil {
-			return err
-		}
-
-		if response, err := handleLongPingRequest(in, state); err != nil {
-			return err
-		} else {
-			if err := stream.Send(response); err != nil {
-				return err
-			}
-		}
-
-		if state.PreprendLittle {
-			state = longPingState{
-				Prepend:        "[o] ",
-				PreprendLittle: false,
-			}
-		} else {
-			state = longPingState{
-				Prepend:        "[O] ",
-				PreprendLittle: true,
-			}
-		}
+	handler := StreamingRequestHandler[pb.LongPingRequest, pb.Pong, longPingState]{
+		stream:    stream,
+		state:     state,
+		process:   handleLongPingRequest,
+		terminate: handleLongPingTermination,
 	}
+
+	return handler.Listen()
 }
 
-func handleLongPingRequest(request *pb.LongPingRequest, state longPingState) (*pb.Pong, error) {
-	return &pb.Pong{
+func handleLongPingRequest(request *pb.LongPingRequest, state *longPingState) (*pb.Pong, error) {
+	output := &pb.Pong{
 		Timestamp: &timestamppb.Timestamp{Seconds: time.Now().Unix()},
 		Message:   state.Prepend + request.Message,
 		Games:     []*pb.Game{},
-	}, nil
+	}
+
+	if state.PreprendLittle {
+		state.Prepend = "[o] "
+		state.PreprendLittle = false
+	} else {
+		state.Prepend = "[O] "
+		state.PreprendLittle = true
+	}
+
+	return output, nil
 }
 
-func handleLongPingTermination(state longPingState) (*pb.Pong, error) {
+func handleLongPingTermination(request *pb.LongPingRequest, state *longPingState) (*pb.Pong, error) {
 	return &pb.Pong{
 		Timestamp: &timestamppb.Timestamp{Seconds: time.Now().Unix()},
 		Message:   "[ng] byeeeeee 👋 ...",
