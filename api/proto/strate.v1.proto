@@ -92,6 +92,7 @@ message PlanGameRequest {
 message PlanGameResponse {
   repeated Position validPlacements = 1;
   repeated History history = 2;
+
   string error = 16;
 }
 
@@ -111,8 +112,10 @@ message PlayGameRequest {
 message PlayGameResponse {
   bool redPlayerActive = 1;
   repeated Position validPlacements = 2;
-  bool success = 3;
-  repeated string removedPieceIds = 4;
+  int32 attackerRank = 3;
+  int32 attackeeRank = 4;
+  repeated string removedPieceIds = 5;
+  
   string error = 16;
 }
 // #endregion Game

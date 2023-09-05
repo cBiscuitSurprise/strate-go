@@ -111,7 +111,7 @@ func handlePlayGamePickPiece(request *pb.PlayGameRequest, state *playGameState) 
 }
 
 func handlePlayGameMovePiece(request *pb.PlayGameRequest, state *playGameState) (*pb.PlayGameResponse, error) {
-	if removed, err := state.game.MovePiece(
+	if response, err := state.game.MovePiece(
 		state.userId,
 		apiadapter.ApiPositionToGamePosition(request.GetSelectedPiecePosition()),
 		apiadapter.ApiPositionToGamePosition(request.GetSelectedPlacement()),
@@ -122,20 +122,37 @@ func handlePlayGameMovePiece(request *pb.PlayGameRequest, state *playGameState) 
 
 		return &pb.PlayGameResponse{
 			RedPlayerActive: state.IsRedPlayerActive(),
-			Success:         false,
+			Error:           "failed to move piece",
 		}, nil
 	} else {
 		state.SwitchPlayers()
 
-		removedOut := make([]string, len(removed))
-		for i, r := range removed {
-			removedOut[i] = r.GetId()
-		}
+		if len(response.RemovedPieces) > 0 {
+			removed := make([]string, len(response.RemovedPieces))
+			for i, r := range response.RemovedPieces {
+				removed[i] = r.GetId()
+			}
 
-		return &pb.PlayGameResponse{
-			RedPlayerActive: state.IsRedPlayerActive(),
-			Success:         true,
-			RemovedPieceIds: removedOut,
-		}, nil
+			var attackerRank int32
+			if response.Attacker != nil {
+				attackerRank = int32(response.Attacker.GetRank())
+			}
+
+			var attackeeRank int32
+			if response.Attackee != nil {
+				attackeeRank = int32(response.Attackee.GetRank())
+			}
+
+			return &pb.PlayGameResponse{
+				RedPlayerActive: state.IsRedPlayerActive(),
+				RemovedPieceIds: removed,
+				AttackerRank:    attackerRank,
+				AttackeeRank:    attackeeRank,
+			}, nil
+		} else {
+			return &pb.PlayGameResponse{
+				RedPlayerActive: state.IsRedPlayerActive(),
+			}, nil
+		}
 	}
 }

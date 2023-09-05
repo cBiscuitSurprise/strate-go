@@ -41,6 +41,14 @@ type BoardSize struct {
 	Columns int
 }
 
+type MovePieceResponse struct {
+	Attacker      *pieces.Piece
+	Attackee      *pieces.Piece
+	RemovedPieces []*pieces.Piece
+}
+
+var emptyMovePieceResponse MovePieceResponse = MovePieceResponse{}
+
 type Board struct {
 	squares [BOARD_SIZE_X][BOARD_SIZE_Y]*Square
 }
@@ -134,61 +142,67 @@ func (b *Board) PlacePiece(piece *pieces.Piece, position Position) *game_errors.
 	return nil
 }
 
-func (b *Board) MovePiece(from Position, to Position) ([]*pieces.Piece, *game_errors.GameError) {
+func (b *Board) MovePiece(from Position, to Position) (MovePieceResponse, *game_errors.GameError) {
 	fromSquare := b.GetSquare(from)
 	toSquare := b.GetSquare(to)
 
 	if fromSquare == nil || toSquare == nil {
-		return nil, game_errors.GameErrorf(
+		return emptyMovePieceResponse, game_errors.GameErrorf(
 			game_errors.ERROR_Board_Uninitialized,
 			"invalid positions: from %v, to %v, board has not been initialized", from, to,
 		)
 	}
 
 	if fromSquare.GetPiece() == nil {
-		return nil, game_errors.GameErrorf(
+		return emptyMovePieceResponse, game_errors.GameErrorf(
 			game_errors.ERROR_Board_Uninitialized,
 			"invalid from position: %v, there is no pieces here", from,
 		)
 	}
 
 	if !toSquare.playable {
-		return nil, game_errors.GameErrorf(
+		return emptyMovePieceResponse, game_errors.GameErrorf(
 			game_errors.ERROR_Board_UnplayableSquare,
 			"invalid to position: %v, square is not playable", to,
 		)
 	}
 
-	var losingPieces []*pieces.Piece
+	response := MovePieceResponse{
+		RemovedPieces: []*pieces.Piece{},
+	}
+
 	if toSquare.GetPiece() == nil {
 		// no contest
 		b.squares[to.R][to.C].SetPiece(fromSquare.GetPiece())
 		b.squares[from.R][from.C].RemovePiece()
 	} else {
+		response.Attacker = fromSquare.GetPiece()
+		response.Attackee = toSquare.GetPiece()
+
 		winner, err := fromSquare.GetPiece().Attack(toSquare.GetPiece())
 
 		if err != nil {
-			return nil, game_errors.GameErrorf(
+			return emptyMovePieceResponse, game_errors.GameErrorf(
 				game_errors.ERROR_Board_UnplayableSquare,
 				"invalid to position: %v, square is not playable", to,
 			)
 		}
 
 		if winner == core.WINNER_Attacker {
-			losingPieces = append(losingPieces, toSquare.GetPiece())
+			response.RemovedPieces = append(response.RemovedPieces, toSquare.GetPiece())
 			b.squares[to.R][to.C].SetPiece(fromSquare.GetPiece())
 		} else if winner == core.WINNER_Attackee {
-			losingPieces = append(losingPieces, fromSquare.GetPiece())
+			response.RemovedPieces = append(response.RemovedPieces, fromSquare.GetPiece())
 		} else {
 			// both pieces removed from board
-			losingPieces = append(losingPieces, toSquare.GetPiece())
-			losingPieces = append(losingPieces, fromSquare.GetPiece())
+			response.RemovedPieces = append(response.RemovedPieces, toSquare.GetPiece())
+			response.RemovedPieces = append(response.RemovedPieces, fromSquare.GetPiece())
 			b.squares[to.R][to.C].RemovePiece()
 		}
 		b.squares[from.R][from.C].RemovePiece()
 	}
 
-	return losingPieces, nil
+	return response, nil
 }
 
 func (b *Board) lookForward(from Position, count int) *Position {
