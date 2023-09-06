@@ -52,6 +52,8 @@ func playGameHandler(userId string, stream *pb.StrateGo_PlayGameServer) (*dummy,
 		userId: userId,
 	}
 
+	// TODO: subscribe to opponent's move-piece events
+
 	handler := StreamingRequestHandler[pb.PlayGameRequest, pb.PlayGameResponse, playGameState]{
 		stream:    *stream,
 		state:     state,
@@ -120,6 +122,7 @@ func handlePlayGameMovePiece(request *pb.PlayGameRequest, state *playGameState) 
 	} else {
 		state.SwitchPlayers()
 
+		var attackEvent *pb.AttackEvent
 		if len(response.RemovedPieces) > 0 {
 			removed := make([]string, len(response.RemovedPieces))
 			for i, r := range response.RemovedPieces {
@@ -136,16 +139,25 @@ func handlePlayGameMovePiece(request *pb.PlayGameRequest, state *playGameState) 
 				attackeeRank = int32(response.Attackee.GetRank())
 			}
 
-			return &pb.PlayGameResponse{
-				RedPlayerActive: state.IsRedPlayerActive(),
+			attackEvent = &pb.AttackEvent{
 				RemovedPieceIds: removed,
 				AttackerRank:    attackerRank,
 				AttackeeRank:    attackeeRank,
-			}, nil
-		} else {
-			return &pb.PlayGameResponse{
-				RedPlayerActive: state.IsRedPlayerActive(),
-			}, nil
+			}
+
 		}
+
+		// TODO: emit piece-moved-event
+		moveEvent := &pb.PieceMovedEvent{
+			Nonce:         uint32(state.game.GetNonce()),
+			PieceId:       response.Attacker.GetId(),
+			From:          request.GetSelectedPiecePosition(),
+			To:            request.GetSelectedPlacement(),
+			PieceAttacked: attackEvent,
+		}
+		return &pb.PlayGameResponse{
+			RedPlayerActive: state.IsRedPlayerActive(),
+			PieceMoved:      moveEvent,
+		}, nil
 	}
 }

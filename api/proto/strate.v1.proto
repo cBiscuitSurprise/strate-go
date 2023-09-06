@@ -59,13 +59,15 @@ message GameInfo {
   string id = 1;
   GameState state = 2;
   repeated string player_ids = 3;
+  uint32 nonce = 4;
 }
 
 message Game {
   string id = 1;
   GameState state = 2;
   repeated string player_ids = 3;
-  Board board = 4;
+  uint32 nonce = 4;
+  Board board = 5;
 }
 
 message NewGameRequest {}
@@ -95,6 +97,20 @@ message History {
   optional string capturedPieceId = 4;
 }
 
+message AttackEvent {
+  int32 attackerRank = 1;
+  int32 attackeeRank = 2;
+  repeated string removedPieceIds = 3;
+}
+
+message PieceMovedEvent {
+  uint32 nonce = 1;
+  string pieceId = 2;
+  Position from = 3;
+  Position to = 4;
+  AttackEvent pieceAttacked = 5;
+}
+
 enum PlanGameRequestCommand {
   PlanGameRequestCommand_PICK_PIECE = 0;
   PlanGameRequestCommand_PLACE_PIECE = 1;
@@ -112,8 +128,9 @@ message PlanGameRequest {
 }
 
 message PlanGameResponse {
-  repeated Position validPlacements = 1;
-  repeated History history = 2;
+  uint32 nonce = 1;
+  repeated Position validPlacements = 2;
+  repeated History history = 3;
 
   string error = 16;
 }
@@ -132,11 +149,9 @@ message PlayGameRequest {
 }
 
 message PlayGameResponse {
-  bool redPlayerActive = 1;
-  repeated Position validPlacements = 2;
-  int32 attackerRank = 3;
-  int32 attackeeRank = 4;
-  repeated string removedPieceIds = 5;
+  bool redPlayerActive = 2;
+  repeated Position validPlacements = 3;
+  PieceMovedEvent pieceMoved = 4;
   
   string error = 16;
 }

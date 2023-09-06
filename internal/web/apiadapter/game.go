@@ -11,6 +11,7 @@ func GameToApiGame(g *game.Game) *pb.Game {
 		Id:        g.GetId(),
 		State:     pb.GameState_GameState_PLAY,
 		PlayerIds: []string{"0", "1"},
+		Nonce:     uint32(g.GetNonce()),
 		Board:     GameBoardToApiBoard(g.Board),
 	}
 }
@@ -20,5 +21,6 @@ func GameToApiGameInfo(g *game.Game) *pb.GameInfo {
 		Id:        g.GetId(),
 		State:     pb.GameState_GameState_PLAY,
 		PlayerIds: []string{"0", "1"},
+		Nonce:     uint32(g.GetNonce()),
 	}
 }

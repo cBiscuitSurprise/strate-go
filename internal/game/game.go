@@ -15,6 +15,7 @@ type Game struct {
 	players map[string]*GamePlayer
 	pieces  map[string]map[string]*pieces.Piece
 	mode    GameMode
+	nonce   int
 }
 
 func NewTwoPlayerGame(red *core.Player, blue *core.Player) (*Game, error) {
@@ -46,6 +47,10 @@ func (g *Game) GetMode() GameMode {
 
 func (g *Game) SetMode(mode GameMode) {
 	g.mode = mode
+}
+
+func (g *Game) GetNonce() int {
+	return g.nonce
 }
 
 func (g *Game) GetPlayerWithId(id string) *GamePlayer {
@@ -128,21 +133,19 @@ func (g *Game) MovePiece(player_id string, from Position, to Position) (MovePiec
 
 	fromPiece := g.Board.GetSquare(from).GetPiece()
 
-	// fromPiece needs to be movable
-	if fromPiece.GetMaxMoves() == 0 {
-		return emptyMovePieceResponse, game_errors.GameErrorf(
-			game_errors.ERROR_Game_InvalidPiece,
-			"can't move piece, %s, at position (max-moves == 0), %v!", fromPiece.GetRank().String(), from,
-		)
-	}
-
-	// player needs to own `from` piece
 	if fromPiece == nil {
 		return emptyMovePieceResponse, game_errors.GameErrorf(
 			game_errors.ERROR_Game_InvalidPiece,
 			"no piece at position, %v!", from,
 		)
+	} else if fromPiece.GetMaxMoves() == 0 {
+		// piece needs to be movable
+		return emptyMovePieceResponse, game_errors.GameErrorf(
+			game_errors.ERROR_Game_InvalidPiece,
+			"can't move piece, %s, at position (max-moves == 0), %v!", fromPiece.GetRank().String(), from,
+		)
 	} else if fromPiece.GetColor() != playerColor {
+		// player needs to own `from` piece
 		return emptyMovePieceResponse, game_errors.GameErrorf(
 			game_errors.ERROR_Game_InvalidPiece,
 			"piece, '%v', does not belong to player, '%s'!", fromPiece, player_id,
@@ -158,5 +161,9 @@ func (g *Game) MovePiece(player_id string, from Position, to Position) (MovePiec
 		)
 	}
 
-	return g.Board.MovePiece(from, to)
+	response, err := g.Board.MovePiece(from, to)
+	if err == nil {
+		g.nonce += 1
+	}
+	return response, err
 }

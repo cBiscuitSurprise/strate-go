@@ -168,6 +168,7 @@ func (b *Board) MovePiece(from Position, to Position) (MovePieceResponse, *game_
 	}
 
 	response := MovePieceResponse{
+		Attacker:      fromSquare.GetPiece(),
 		RemovedPieces: []*pieces.Piece{},
 	}
 
@@ -176,7 +177,6 @@ func (b *Board) MovePiece(from Position, to Position) (MovePieceResponse, *game_
 		b.squares[to.R][to.C].SetPiece(fromSquare.GetPiece())
 		b.squares[from.R][from.C].RemovePiece()
 	} else {
-		response.Attacker = fromSquare.GetPiece()
 		response.Attackee = toSquare.GetPiece()
 
 		winner, err := fromSquare.GetPiece().Attack(toSquare.GetPiece())
