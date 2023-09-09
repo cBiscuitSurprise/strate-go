@@ -1,9 +1,13 @@
 package game
 
 import (
+	"fmt"
+
 	"github.com/cBiscuitSurprise/strate-go/internal/core"
 	game_errors "github.com/cBiscuitSurprise/strate-go/internal/errors"
 	"github.com/cBiscuitSurprise/strate-go/internal/pieces"
+	"github.com/cBiscuitSurprise/strate-go/internal/util"
+	"github.com/rs/zerolog/log"
 )
 
 const BOARD_SIZE int = 10
@@ -28,12 +32,14 @@ func (s *Square) SetPiece(piece *pieces.Piece) {
 	s.piece = piece
 }
 
-func (s *Square) RemovePiece() {
+func (s *Square) RemovePiece() *pieces.Piece {
+	p := s.piece
 	s.piece = nil
+	return p
 }
 
 func (s *Square) IsPlayable() bool {
-	return s.playable
+	return s != nil && s.playable
 }
 
 type BoardSize struct {
@@ -42,22 +48,36 @@ type BoardSize struct {
 }
 
 type MovePieceResponse struct {
-	Attacker      *pieces.Piece
-	Attackee      *pieces.Piece
-	RemovedPieces []*pieces.Piece
+	Attacker *pieces.Piece
+	Attackee *pieces.Piece
+	Move     Move
 }
 
 var emptyMovePieceResponse MovePieceResponse = MovePieceResponse{}
 
 type Board struct {
-	squares [BOARD_SIZE_X][BOARD_SIZE_Y]*Square
+	squares  [BOARD_SIZE_X][BOARD_SIZE_Y]*Square
+	pieces   map[string]*pieces.Piece
+	reserves map[string]*pieces.Piece
+	history  []Move
 }
 
 func (b *Board) GetSize() BoardSize {
 	return BoardSize{Rows: BOARD_SIZE_X, Columns: BOARD_SIZE_Y}
 }
 
-func (b *Board) Initialize(unplayable []Position) {
+func (b *Board) GetPiece(id string) (pieces.Piece, bool) {
+	if p, onBoard := b.pieces[id]; onBoard {
+		return *p, true
+	} else {
+		return pieces.Piece{}, false
+	}
+}
+
+func (b *Board) Initialize(pieceSet map[string]*pieces.Piece, unplayable []Position) {
+	b.pieces = util.UpdateMap[string, *pieces.Piece](make(map[string]*pieces.Piece, len(pieceSet)), pieceSet)
+	b.reserves = pieceSet
+
 	for y, row := range b.squares {
 		for x := range row {
 			b.squares[x][y] = &Square{playable: true}
@@ -108,101 +128,148 @@ func (b *Board) CheckNeighboringSquares(position Position, stop func(d int, p Po
 	}
 }
 
-func (b *Board) PlacePiece(piece *pieces.Piece, position Position) *game_errors.GameError {
-	if position.R >= BOARD_SIZE_X || position.C >= BOARD_SIZE_Y {
+func (b *Board) PlacePiece(id string, position Position) *game_errors.GameError {
+	if ok := b.ApplyMove(Move{
+		Id:     id,
+		To:     &position,
+		Result: MOVERESULT_NoContest,
+	}); !ok {
 		return game_errors.GameErrorf(
-			game_errors.ERROR_Board_IndexOutOfRange,
-			"invalid position: %v for board size: %d rows x %d columns", position, BOARD_SIZE_X, BOARD_SIZE_Y,
+			game_errors.ERROR_Board_InvalidMove,
+			"invalid move: failed to move from reserves",
 		)
 	}
-
-	if b.GetSquare(position) == nil {
-		return game_errors.GameErrorf(
-			game_errors.ERROR_Board_Uninitialized,
-			"invalid position: %v, board has not been initialized", position,
-		)
-	}
-
-	if !b.GetSquare(position).playable {
-		return game_errors.GameErrorf(
-			game_errors.ERROR_Board_UnplayableSquare,
-			"invalid position: %v, square is not playable", position,
-		)
-	}
-
-	if b.GetSquare(position).GetPiece() != nil {
-		return game_errors.GameErrorf(
-			game_errors.ERROR_Board_OccupiedSquare,
-			"invalid position: %v, square is occupied", position,
-		)
-	}
-
-	b.squares[position.R][position.C].SetPiece(piece)
 
 	return nil
 }
 
-func (b *Board) MovePiece(from Position, to Position) (MovePieceResponse, *game_errors.GameError) {
+func (b *Board) MovePiece(from Position, to Position) (*MovePieceResponse, *game_errors.GameError) {
 	fromSquare := b.GetSquare(from)
 	toSquare := b.GetSquare(to)
 
+	attacker := fromSquare.GetPiece()
+	attackee := toSquare.GetPiece()
+
 	if fromSquare == nil || toSquare == nil {
-		return emptyMovePieceResponse, game_errors.GameErrorf(
+		return nil, game_errors.GameErrorf(
 			game_errors.ERROR_Board_Uninitialized,
 			"invalid positions: from %v, to %v, board has not been initialized", from, to,
 		)
 	}
 
-	if fromSquare.GetPiece() == nil {
-		return emptyMovePieceResponse, game_errors.GameErrorf(
+	if attacker == nil {
+		return nil, game_errors.GameErrorf(
 			game_errors.ERROR_Board_Uninitialized,
 			"invalid from position: %v, there is no pieces here", from,
 		)
 	}
 
 	if !toSquare.playable {
-		return emptyMovePieceResponse, game_errors.GameErrorf(
+		return nil, game_errors.GameErrorf(
 			game_errors.ERROR_Board_UnplayableSquare,
 			"invalid to position: %v, square is not playable", to,
 		)
 	}
 
-	response := MovePieceResponse{
-		Attacker:      fromSquare.GetPiece(),
-		RemovedPieces: []*pieces.Piece{},
+	response := &MovePieceResponse{
+		Attacker: attacker,
+		Attackee: attackee,
 	}
 
-	if toSquare.GetPiece() == nil {
-		// no contest
-		b.squares[to.R][to.C].SetPiece(fromSquare.GetPiece())
-		b.squares[from.R][from.C].RemovePiece()
+	response.Move = Move{
+		Id:     attacker.GetId(),
+		From:   &from,
+		To:     &to,
+		Result: b.computeMoveResult(attacker, attackee),
+	}
+	if ok := b.ApplyMove(response.Move); ok {
+		return response, nil
 	} else {
-		response.Attackee = toSquare.GetPiece()
+		return nil, game_errors.GameErrorf(
+			game_errors.ERROR_Board_UnplayableSquare,
+			"failed to apply move %v", response.Move,
+		)
+	}
+}
 
-		winner, err := fromSquare.GetPiece().Attack(toSquare.GetPiece())
-
-		if err != nil {
-			return emptyMovePieceResponse, game_errors.GameErrorf(
-				game_errors.ERROR_Board_UnplayableSquare,
-				"invalid to position: %v, square is not playable", to,
-			)
-		}
-
-		if winner == core.WINNER_Attacker {
-			response.RemovedPieces = append(response.RemovedPieces, toSquare.GetPiece())
-			b.squares[to.R][to.C].SetPiece(fromSquare.GetPiece())
-		} else if winner == core.WINNER_Attackee {
-			response.RemovedPieces = append(response.RemovedPieces, fromSquare.GetPiece())
-		} else {
-			// both pieces removed from board
-			response.RemovedPieces = append(response.RemovedPieces, toSquare.GetPiece())
-			response.RemovedPieces = append(response.RemovedPieces, fromSquare.GetPiece())
-			b.squares[to.R][to.C].RemovePiece()
-		}
-		b.squares[from.R][from.C].RemovePiece()
+func (b *Board) ApplyMove(move Move) (ok bool) {
+	ok = true
+	if ok = b.ValidateMove(move); !ok {
+		return ok
 	}
 
-	return response, nil
+	if move.From == nil && move.To == nil {
+		ok = move.Result == MOVERESULT_NoContest
+	} else if move.From == nil {
+		b.fromReserves(move.Id, *move.To)
+	} else if move.To == nil {
+		b.toReserves(*move.From)
+	} else {
+		switch move.Result {
+		case MOVERESULT_NoContest:
+			ok = ok && b.transferPiece(*move.From, *move.To)
+			break
+		case MOVERESULT_AttackeeCaptured:
+			ok = ok && b.toReserves(*move.To)
+			ok = ok && b.transferPiece(*move.From, *move.To)
+			break
+		case MOVERESULT_AttackerCaptured:
+			ok = ok && b.toReserves(*move.From)
+			break
+		case MOVERESULT_BothCaptured:
+			ok = ok && b.toReserves(*move.To)
+			ok = ok && b.toReserves(*move.From)
+			break
+		}
+	}
+
+	if ok {
+		b.history = append(b.history, move)
+	}
+	return ok
+}
+
+func (b *Board) ValidateMove(move Move) (ok bool) {
+	// Validates that the move can be made on the board (attack logic is handled elsewhere)
+	if move.From == nil && move.To == nil {
+		// noop
+		ok = true
+	} else {
+		ok = true
+		if move.To != nil {
+			// `To` shall be playable
+			ok = ok && b.hasPosition(*move.To) && b.GetSquare(*move.To).IsPlayable()
+
+			if ok && b.GetSquare(*move.To).GetPiece() != nil {
+				// There shall be a contest
+				ok = ok && move.Result != MOVERESULT_NoContest
+			}
+		} else {
+			// Piece (`Id`) shall not be in reserves
+			_, inReserve := b.reserves[move.Id]
+			ok = ok && !inReserve
+		}
+		if move.From != nil {
+			// `From` shall be playable and equal to Move.Id
+			ok = (ok &&
+				b.hasPosition(*move.From) &&
+				b.GetSquare(*move.From).IsPlayable() &&
+				b.GetSquare(*move.From).GetPiece() != nil &&
+				b.GetSquare(*move.From).GetPiece().GetId() == move.Id)
+		} else {
+			// Piece (`Id`) shall be in reserves
+			_, inReserve := b.reserves[move.Id]
+			ok = ok && inReserve
+		}
+	}
+	return ok
+}
+
+func (b *Board) hasPosition(position Position) bool {
+	if position.R >= BOARD_SIZE_X || position.C >= BOARD_SIZE_Y {
+		return false
+	}
+	return true
 }
 
 func (b *Board) lookForward(from Position, count int) *Position {
@@ -235,4 +302,64 @@ func (b *Board) lookLeft(from Position, count int) *Position {
 		return nil
 	}
 	return &Position{R: from.R, C: n}
+}
+
+func (b *Board) fromReserves(id string, to Position) (ok bool) {
+	if piece, inReserve := b.reserves[id]; inReserve {
+		b.GetSquare(to).SetPiece(piece)
+		delete(b.reserves, id)
+		return true
+	}
+	log.Error().
+		Err(fmt.Errorf("invalid move from reserves")).
+		Msgf("piece, '%s', is not in reserves", id)
+	return false
+}
+
+func (b *Board) toReserves(from Position) (ok bool) {
+	if piece := b.GetSquare(from).RemovePiece(); piece != nil {
+		b.reserves[piece.GetId()] = piece
+		return true
+	}
+	log.Error().
+		Err(fmt.Errorf("invalid move to reserves")).
+		Msgf("no piece located at, position '%v'", from)
+	return false
+}
+
+func (b *Board) transferPiece(from Position, to Position) (ok bool) {
+	if toSquare := b.GetSquare(to); toSquare.GetPiece() == nil {
+		if fromPiece := b.GetSquare(from).RemovePiece(); fromPiece != nil {
+			toSquare.SetPiece(fromPiece)
+			return true
+		}
+		log.Error().
+			Err(fmt.Errorf("invalid move transferring piece")).
+			Msgf("no piece located at, position '%v'", from)
+		return false
+	}
+	log.Error().
+		Err(fmt.Errorf("invalid move transferring piece")).
+		Msgf("piece already located at, position '%v'", to)
+	return false
+}
+
+func (b *Board) computeMoveResult(attacker, attackee *pieces.Piece) MoveResult {
+	if attackee == nil {
+		return MOVERESULT_NoContest
+	} else {
+		result := attacker.Attack(attackee)
+		switch result {
+		case core.WINNER_Attacker:
+			return MOVERESULT_AttackeeCaptured
+		case core.WINNER_Attackee:
+			return MOVERESULT_AttackerCaptured
+		case core.WINNER_Draw:
+			return MOVERESULT_BothCaptured
+		}
+		log.Warn().
+			Str("winner", result.String()).
+			Msgf("unhandled attack result")
+		return MOVERESULT_NoContest
+	}
 }

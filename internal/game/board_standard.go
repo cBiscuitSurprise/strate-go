@@ -1,7 +1,12 @@
 package game
 
+import (
+	"github.com/cBiscuitSurprise/strate-go/internal/pieces"
+	"github.com/cBiscuitSurprise/strate-go/internal/util"
+)
+
 // create an empty standard board
-func CreateStandardBaseBoard() *Board {
+func CreateStandardBaseBoard(pieceSet map[string]*pieces.Piece) *Board {
 	/* Base Board
 	Blue
 	0 |  |  |  |  |  |  |  |  |  |  |
@@ -29,7 +34,14 @@ func CreateStandardBaseBoard() *Board {
 		{R: 4, C: 7},
 		{R: 5, C: 7},
 	}
-	board.Initialize(unplayable)
+	board.Initialize(pieceSet, unplayable)
 
 	return board
+}
+
+func CreateStandardPieceSet() map[string]*pieces.Piece {
+	playerOnePieces := pieces.GenerateStandardPieces(pieces.COLOR_red)
+	playerTwoPieces := pieces.GenerateStandardPieces(pieces.COLOR_blue)
+
+	return util.UpdateMap[string, *pieces.Piece](playerOnePieces, playerTwoPieces)
 }

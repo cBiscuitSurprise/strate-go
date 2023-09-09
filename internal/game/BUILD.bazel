@@ -9,6 +9,9 @@ go_library(
         "game.go",
         "game_mode.go",
         "game_player.go",
+        "move.go",
+        "move_result.go",
+        "move_serializer.go",
     ],
     importpath = "github.com/cBiscuitSurprise/strate-go/internal/game",
     visibility = ["//:__subpackages__"],
@@ -26,6 +29,7 @@ go_test(
     srcs = [
         "board_test.go",
         "game_test.go",
+        "move_serializer_test.go",
     ],
     embed = [":game"],
     deps = [
@@ -33,5 +37,6 @@ go_test(
         "//internal/errors",
         "//internal/pieces",
         "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
     ],
 )

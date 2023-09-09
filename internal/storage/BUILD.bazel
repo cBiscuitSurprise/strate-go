@@ -8,8 +8,5 @@ go_library(
     ],
     importpath = "github.com/cBiscuitSurprise/strate-go/internal/storage",
     visibility = ["//:__subpackages__"],
-    deps = [
-        "//internal/game",
-        "@com_github_rs_zerolog//log",
-    ],
+    deps = ["//internal/game"],
 )

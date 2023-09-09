@@ -16,15 +16,15 @@ func TestBoardUnInitialized(t *testing.T) {
 	assert.Len(t, board.squares[0], 10)
 	assert.Nil(t, board.squares[0][0])
 
-	err := board.PlacePiece(nil, Position{0, 0})
-	assert.Equal(t, game_errors.ERROR_Board_Uninitialized, err.Code)
+	err := board.PlacePiece("", Position{0, 0})
+	assert.Equal(t, game_errors.ERROR_Board_InvalidMove, err.Code)
 }
 
 func TestBoardInitialized(t *testing.T) {
 	board := Board{}
 
 	unplayable := []Position{{5, 6}}
-	board.Initialize(unplayable)
+	board.Initialize(map[string]*pieces.Piece{}, unplayable)
 
 	for x, row := range board.squares {
 		for y, cell := range row {
@@ -41,42 +41,47 @@ func TestBoardInitialized(t *testing.T) {
 }
 
 func TestBoardPlacePiece(t *testing.T) {
-	flag := pieces.CreatePiece(pieces.COLOR_red, pieces.RANK_Flag)
+	flag := pieces.CreatePiece(0, pieces.COLOR_red, pieces.RANK_Flag)
+	marshal := pieces.CreatePiece(0, pieces.COLOR_red, pieces.RANK_Marshal)
+	pieceSet := map[string]*pieces.Piece{
+		flag.GetId():    flag,
+		marshal.GetId(): marshal,
+	}
+
 	board := Board{}
 
 	unplayable := []Position{{5, 6}}
 
 	// Error: Index Out of Range
-	err := board.PlacePiece(nil, Position{20, 0})
-	assert.Equal(t, game_errors.ERROR_Board_IndexOutOfRange, err.Code)
+	err := board.PlacePiece("", Position{20, 0})
+	assert.Equal(t, game_errors.ERROR_Board_InvalidMove, err.Code)
 
-	err = board.PlacePiece(nil, Position{0, 20})
-	assert.Equal(t, game_errors.ERROR_Board_IndexOutOfRange, err.Code)
+	err = board.PlacePiece("", Position{0, 20})
+	assert.Equal(t, game_errors.ERROR_Board_InvalidMove, err.Code)
 
 	// Error: Uninitialized Board
-	err = board.PlacePiece(nil, Position{0, 0})
-	assert.Equal(t, game_errors.ERROR_Board_Uninitialized, err.Code)
+	err = board.PlacePiece("", Position{0, 0})
+	assert.Equal(t, game_errors.ERROR_Board_InvalidMove, err.Code)
 
-	board.Initialize(unplayable)
+	board.Initialize(pieceSet, unplayable)
 
 	// Success
 	validPosition := Position{2, 9}
-	err = board.PlacePiece(flag, validPosition)
+	err = board.PlacePiece(flag.GetId(), validPosition)
 
 	assert.Nil(t, err)
-	assert.Equal(t, flag, board.squares[2][9].GetPiece())
+	assert.Equal(t, flag, board.GetSquare(validPosition).GetPiece())
 
 	// Error: Occupied
-	err = board.PlacePiece(flag, validPosition)
-
-	assert.Equal(t, game_errors.ERROR_Board_OccupiedSquare, err.Code)
+	err = board.PlacePiece(marshal.GetId(), validPosition)
+	assert.Equal(t, game_errors.ERROR_Board_InvalidMove, err.Code)
 
 	// Error: Unplayable Square
 	invalidPosition := Position{5, 6}
-	err = board.PlacePiece(flag, invalidPosition)
+	err = board.PlacePiece(marshal.GetId(), invalidPosition)
 
 	assert.NotNil(t, err)
-	assert.Equal(t, game_errors.ERROR_Board_UnplayableSquare, err.Code)
+	assert.Equal(t, game_errors.ERROR_Board_InvalidMove, err.Code)
 }
 
 func TestBoardMovePiece(t *testing.T) {
@@ -94,74 +99,92 @@ func TestBoardMovePiece(t *testing.T) {
 	|  |  |  |  |  |  |  |  |  |  |
 	|  |  |  |  |  |  |  |  |  |  |
 	*/
-	unplayable := []Position{{5, 6}}
-	board.Initialize(unplayable)
-
 	userOne := core.NewPlayer()
-	userTwo := core.NewPlayer()
-
 	playerOne := NewGamePlayer(pieces.COLOR_red, userOne)
+	playerOneGeneral := pieces.CreatePiece(0, playerOne.GetColor(), pieces.RANK_General)
+	playerOneMarshal := pieces.CreatePiece(0, playerOne.GetColor(), pieces.RANK_Marshal)
+
+	userTwo := core.NewPlayer()
 	playerTwo := NewGamePlayer(pieces.COLOR_blue, userTwo)
+	playerTwoColonel := pieces.CreatePiece(0, playerTwo.GetColor(), pieces.RANK_Colonel)
+	playerTwoMarshal := pieces.CreatePiece(0, playerTwo.GetColor(), pieces.RANK_Marshal)
 
-	playerOneGeneral := pieces.CreatePiece(playerOne.GetColor(), pieces.RANK_General)
-	err := board.PlacePiece(playerOneGeneral, Position{6, 6})
-	assert.Nil(t, err)
+	pieces := map[string]*pieces.Piece{
+		playerOneGeneral.GetId(): playerOneGeneral,
+		playerOneMarshal.GetId(): playerOneMarshal,
+		playerTwoColonel.GetId(): playerTwoColonel,
+		playerTwoMarshal.GetId(): playerTwoMarshal,
+	}
+	unplayable := []Position{{5, 6}}
+	board.Initialize(pieces, unplayable)
 
-	playerOneMarshal := pieces.CreatePiece(playerOne.GetColor(), pieces.RANK_Marshal)
-	err = board.PlacePiece(playerOneMarshal, Position{4, 4})
+	err := board.PlacePiece(playerOneGeneral.GetId(), Position{6, 6})
 	assert.Nil(t, err)
+	_, inReserves := board.reserves[playerOneGeneral.GetId()]
+	assert.False(t, inReserves)
 
-	playerTwoColonel := pieces.CreatePiece(playerTwo.GetColor(), pieces.RANK_Colonel)
-	err = board.PlacePiece(playerTwoColonel, Position{5, 5})
+	err = board.PlacePiece(playerOneMarshal.GetId(), Position{4, 4})
 	assert.Nil(t, err)
+	_, inReserves = board.reserves[playerOneMarshal.GetId()]
+	assert.False(t, inReserves)
 
-	playerTwoMarshal := pieces.CreatePiece(playerTwo.GetColor(), pieces.RANK_Marshal)
-	err = board.PlacePiece(playerTwoMarshal, Position{4, 5})
+	err = board.PlacePiece(playerTwoColonel.GetId(), Position{5, 5})
 	assert.Nil(t, err)
+	_, inReserves = board.reserves[playerTwoColonel.GetId()]
+	assert.False(t, inReserves)
+
+	err = board.PlacePiece(playerTwoMarshal.GetId(), Position{4, 5})
+	assert.Nil(t, err)
+	_, inReserves = board.reserves[playerTwoMarshal.GetId()]
+	assert.False(t, inReserves)
 
 	// Move player-one-general up one space (Error: unplayable)
 	response, err := board.MovePiece(Position{6, 6}, Position{5, 6})
 	assert.Equal(t, game_errors.ERROR_Board_UnplayableSquare, err.Code)
-	assert.Len(t, response.RemovedPieces, 0)
+	assert.Nil(t, response)
 	assert.Equal(t, playerOneGeneral, board.GetSquare(Position{6, 6}).GetPiece())
 
 	// Move player-one-general left one space
 	response, err = board.MovePiece(Position{6, 6}, Position{6, 5})
 	assert.Nil(t, err)
-	assert.Len(t, response.RemovedPieces, 0)
+	assert.Nil(t, response.Attackee)
 	assert.Equal(t, playerOneGeneral, board.GetSquare(Position{6, 5}).GetPiece())
 	assert.Nil(t, board.GetSquare(Position{6, 6}).GetPiece())
 
 	// Move player-one-general up one space (take Player Two Colonel)
 	response, err = board.MovePiece(Position{6, 5}, Position{5, 5})
 	assert.Nil(t, err)
-	assert.Len(t, response.RemovedPieces, 1)
 	assert.Equal(t, playerOneGeneral, response.Attacker)
 	assert.Equal(t, playerTwoColonel, response.Attackee)
-	assert.Equal(t, playerTwoColonel, response.RemovedPieces[0])
+	assert.Equal(t, MOVERESULT_AttackeeCaptured, response.Move.Result)
 	assert.Equal(t, playerOneGeneral, board.GetSquare(Position{5, 5}).GetPiece())
 	assert.Nil(t, board.GetSquare(Position{6, 5}).GetPiece())
+	_, inReserves = board.reserves[playerTwoColonel.GetId()]
+	assert.True(t, inReserves)
 
 	// Move player-one-general up one space (lose Player One General)
 	response, err = board.MovePiece(Position{5, 5}, Position{4, 5})
 	assert.Nil(t, err)
-	assert.Len(t, response.RemovedPieces, 1)
 	assert.Equal(t, playerOneGeneral, response.Attacker)
 	assert.Equal(t, playerTwoMarshal, response.Attackee)
-	assert.Equal(t, playerOneGeneral, response.RemovedPieces[0])
+	assert.Equal(t, MOVERESULT_AttackerCaptured, response.Move.Result)
 	assert.Equal(t, playerTwoMarshal, board.GetSquare(Position{4, 5}).GetPiece())
 	assert.Nil(t, board.GetSquare(Position{5, 5}).GetPiece())
+	_, inReserves = board.reserves[playerOneGeneral.GetId()]
+	assert.True(t, inReserves)
 
 	// Move player-one-marshal right one space (lose both Marshals)
 	response, err = board.MovePiece(Position{4, 4}, Position{4, 5})
 	assert.Nil(t, err)
-	assert.Len(t, response.RemovedPieces, 2)
-	assert.Contains(t, response.RemovedPieces, playerOneMarshal)
-	assert.Contains(t, response.RemovedPieces, playerTwoMarshal)
 	assert.Equal(t, playerOneMarshal, response.Attacker)
 	assert.Equal(t, playerTwoMarshal, response.Attackee)
+	assert.Equal(t, MOVERESULT_BothCaptured, response.Move.Result)
 	assert.Nil(t, board.GetSquare(Position{4, 4}).GetPiece())
 	assert.Nil(t, board.GetSquare(Position{4, 5}).GetPiece())
+	_, inReserves = board.reserves[playerOneMarshal.GetId()]
+	assert.True(t, inReserves)
+	_, inReserves = board.reserves[playerTwoMarshal.GetId()]
+	assert.True(t, inReserves)
 }
 
 func TestCheckNeighbors(t *testing.T) {

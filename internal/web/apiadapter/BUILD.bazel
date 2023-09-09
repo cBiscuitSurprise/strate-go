@@ -16,6 +16,7 @@ go_library(
     srcs = [
         "board.go",
         "game.go",
+        "move.go",
         "piece.go",
         "position.go",
         "util.go",
@@ -27,5 +28,6 @@ go_library(
         "//internal/game",
         "//internal/pieces",
         "//internal/util",
+        "@com_github_rs_zerolog//log",
     ],
 )

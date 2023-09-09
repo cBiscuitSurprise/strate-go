@@ -123,15 +123,10 @@ func handlePlayGameMovePiece(request *pb.PlayGameRequest, state *playGameState) 
 		state.SwitchPlayers()
 
 		var attackEvent *pb.AttackEvent
-		if len(response.RemovedPieces) > 0 {
-			removed := make([]string, len(response.RemovedPieces))
-			for i, r := range response.RemovedPieces {
-				removed[i] = r.GetId()
-			}
-
+		if response.Attackee != nil {
 			var attackerRank int32
 			if response.Attacker != nil {
-				attackerRank = int32(response.Attacker.GetRank())
+				attackerRank = int32(response.Attackee.GetRank())
 			}
 
 			var attackeeRank int32
@@ -140,19 +135,18 @@ func handlePlayGameMovePiece(request *pb.PlayGameRequest, state *playGameState) 
 			}
 
 			attackEvent = &pb.AttackEvent{
-				RemovedPieceIds: removed,
-				AttackerRank:    attackerRank,
-				AttackeeRank:    attackeeRank,
+				AttackerRank: attackerRank,
+				AttackeeRank: attackeeRank,
+				Result:       apiadapter.GameMoveResultToApiMoveResult(response.Move.Result),
 			}
-
 		}
 
 		// TODO: emit piece-moved-event
 		moveEvent := &pb.PieceMovedEvent{
 			Nonce:         uint32(state.game.GetNonce()),
-			PieceId:       response.Attacker.GetId(),
-			From:          request.GetSelectedPiecePosition(),
-			To:            request.GetSelectedPlacement(),
+			PieceId:       response.Move.Id,
+			From:          apiadapter.GamePositionToApiPosition(response.Move.From),
+			To:            apiadapter.GamePositionToApiPosition(response.Move.To),
 			PieceAttacked: attackEvent,
 		}
 		return &pb.PlayGameResponse{

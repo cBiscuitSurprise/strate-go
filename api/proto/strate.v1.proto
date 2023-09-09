@@ -97,10 +97,17 @@ message History {
   optional string capturedPieceId = 4;
 }
 
+enum AttackResult {
+  AttackResult_NO_CONTEST = 0;  // find partner, pick sides
+  AttackResult_ATTACKEE_CAPTURED = 1;   // place pieces
+  AttackResult_ATTACKER_CAPTURED = 2;   // play game
+  AttackResult_BOTH_CAPTURED = 3;    // game is over
+}
+
 message AttackEvent {
   int32 attackerRank = 1;
   int32 attackeeRank = 2;
-  repeated string removedPieceIds = 3;
+  AttackResult result = 3;
 }
 
 message PieceMovedEvent {

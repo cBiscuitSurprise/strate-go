@@ -4,14 +4,15 @@ import (
 	"fmt"
 
 	"github.com/cBiscuitSurprise/strate-go/internal/pieces"
+	"github.com/cBiscuitSurprise/strate-go/internal/util"
 	"github.com/rs/zerolog/log"
 )
 
 func CreateRandomlyPlannedBoard() (*Board, error) {
-	board := CreateStandardBaseBoard()
-
 	playerOnePieces := pieces.GenerateStandardPieces(pieces.COLOR_red)
 	playerTwoPieces := pieces.GenerateStandardPieces(pieces.COLOR_blue)
+
+	board := CreateStandardBaseBoard(util.UpdateMap[string, *pieces.Piece](playerOnePieces, playerTwoPieces))
 
 	board, err := placePieces(board, playerOnePieces, 0)
 	if err != nil {
@@ -33,7 +34,7 @@ func placePieces(board *Board, unplaced map[string]*pieces.Piece, startRow int) 
 		row := int(inx / numColumns)
 		column := int(inx - int(row)*numColumns)
 		row += startRow
-		err := board.PlacePiece(p, Position{R: row, C: column})
+		err := board.PlacePiece(p.GetId(), Position{R: row, C: column})
 
 		if err != nil {
 			log.Error().

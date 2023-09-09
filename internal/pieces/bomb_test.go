@@ -14,7 +14,7 @@ func TestCreateBomb(t *testing.T) {
 		maxMoves: 0,
 	}
 
-	got := *CreatePiece(COLOR_red, RANK_Bomb)
+	got := *CreatePiece(0, COLOR_red, RANK_Bomb)
 
 	assert.Equal(t, want.color, got.color)
 	assert.Equal(t, want.rank, got.rank)
@@ -40,7 +40,7 @@ func TestAttackBomb(t *testing.T) {
 		{RANK_Flag, core.WINNER_Attacker}, // bomb loses
 	}
 
-	bomb := CreatePiece(COLOR_red, RANK_Bomb)
+	bomb := CreatePiece(0, COLOR_red, RANK_Bomb)
 
 	for _, tc := range testCases {
 		attacker := &Piece{
@@ -73,7 +73,7 @@ func TestAttackByBomb(t *testing.T) {
 		{RANK_Flag, core.WINNER_Attackee}, // bomb loses
 	}
 
-	bomb := CreatePiece(COLOR_red, RANK_Bomb)
+	bomb := CreatePiece(0, COLOR_red, RANK_Bomb)
 
 	for _, tc := range testCases {
 		attackee := &Piece{

@@ -28,7 +28,7 @@ func TestCreatePiece(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		piece := CreatePiece(tc.color, tc.rank)
+		piece := CreatePiece(0, tc.color, tc.rank)
 
 		assert.Equal(t, tc.rank, piece.GetRank())
 		assert.Equal(t, tc.moves, piece.GetMaxMoves())
@@ -63,12 +63,10 @@ func TestAttackPiece(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		attacker := CreatePiece(COLOR_red, tc.attacker)
-		attackee := CreatePiece(COLOR_red, tc.attackee)
+		attacker := CreatePiece(0, COLOR_red, tc.attacker)
+		attackee := CreatePiece(1, COLOR_red, tc.attackee)
 
-		winner, err := attacker.Attack(attackee)
-
-		assert.Nil(t, err)
+		winner := attacker.Attack(attackee)
 		assert.Equal(t, tc.want, winner, "Attacker %v, Attackee %v", attacker, attackee)
 	}
 }

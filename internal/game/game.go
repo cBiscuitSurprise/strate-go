@@ -5,7 +5,6 @@ import (
 	game_errors "github.com/cBiscuitSurprise/strate-go/internal/errors"
 	"github.com/cBiscuitSurprise/strate-go/internal/pieces"
 	"github.com/cBiscuitSurprise/strate-go/internal/util"
-	"github.com/rs/zerolog/log"
 )
 
 type Game struct {
@@ -13,7 +12,6 @@ type Game struct {
 
 	id      string
 	players map[string]*GamePlayer
-	pieces  map[string]map[string]*pieces.Piece
 	mode    GameMode
 	nonce   int
 }
@@ -28,12 +26,8 @@ func NewTwoPlayerGame(red *core.Player, blue *core.Player) (*Game, error) {
 			red.GetId():  redGamePlayer,
 			blue.GetId(): blueGamePlayer,
 		},
-		pieces: map[string]map[string]*pieces.Piece{
-			red.GetId():  pieces.GenerateStandardPieces(pieces.COLOR_red),
-			blue.GetId(): pieces.GenerateStandardPieces(pieces.COLOR_blue),
-		},
 		mode:  GAMEMODE_Setup,
-		Board: CreateStandardBaseBoard(),
+		Board: CreateStandardBaseBoard(CreateStandardPieceSet()),
 	}, nil
 }
 
@@ -55,7 +49,6 @@ func (g *Game) GetNonce() int {
 
 func (g *Game) GetPlayerWithId(id string) *GamePlayer {
 	for _, p := range g.players {
-		log.Trace().Str("id", id).Str("player-id", p.player.GetId()).Msg("here")
 		if p.player.GetId() == id {
 			return p
 		}
@@ -63,7 +56,11 @@ func (g *Game) GetPlayerWithId(id string) *GamePlayer {
 	return nil
 }
 
-func (g *Game) GetValidMovesFromPosition(player_id string, from Position) []*Position {
+func (g *Game) ApplyMove(nonce int, move Move) (ok bool) {
+	return false
+}
+
+func (g *Game) GetValidMovesFromPosition(playerId string, from Position) []*Position {
 	piece := g.Board.GetSquare(from).GetPiece()
 
 	validMoves := []*Position{}
@@ -107,57 +104,61 @@ func (g *Game) PlacePiece(player_id string, piece_id string, position Position) 
 		)
 	}
 
-	if p, ok := g.pieces[player_id][piece_id]; ok {
-		if err := g.Board.PlacePiece(p, position); err == nil {
-			return nil
-		} else {
-			return err
-		}
+	if ok := g.checkOwnership(player_id, piece_id); ok {
+		return g.Board.PlacePiece(piece_id, position)
 	} else {
 		return game_errors.GameErrorf(
-			game_errors.ERROR_Game_InvalidPiece,
+			game_errors.ERROR_Game_InvalidMove,
 			"piece, '%s', does not belong to player, '%s'!", piece_id, player_id,
 		)
 	}
 }
 
-func (g *Game) MovePiece(player_id string, from Position, to Position) (MovePieceResponse, *game_errors.GameError) {
+func (g *Game) MovePiece(playerId string, from Position, to Position) (*MovePieceResponse, *game_errors.GameError) {
 	if g.mode != GAMEMODE_Play {
-		return emptyMovePieceResponse, game_errors.GameErrorf(
+		return nil, game_errors.GameErrorf(
 			game_errors.ERROR_Game_InvalidMode,
 			"game is not in playing mode, cannot proceed (%s)", g.mode.String(),
 		)
 	}
 
-	playerColor := g.players[player_id].GetColor()
-
 	fromPiece := g.Board.GetSquare(from).GetPiece()
 
+	// fromPiece needs to exists
 	if fromPiece == nil {
-		return emptyMovePieceResponse, game_errors.GameErrorf(
-			game_errors.ERROR_Game_InvalidPiece,
-			"no piece at position, %v!", from,
+		return nil, game_errors.GameErrorf(
+			game_errors.ERROR_Game_InvalidMove,
+			"no piece to move from %v!", from,
 		)
-	} else if fromPiece.GetMaxMoves() == 0 {
-		// piece needs to be movable
-		return emptyMovePieceResponse, game_errors.GameErrorf(
-			game_errors.ERROR_Game_InvalidPiece,
+	}
+
+	// fromPiece needs to be movable
+	if fromPiece.GetMaxMoves() == 0 {
+		return nil, game_errors.GameErrorf(
+			game_errors.ERROR_Game_InvalidMove,
 			"can't move piece, %s, at position (max-moves == 0), %v!", fromPiece.GetRank().String(), from,
 		)
-	} else if fromPiece.GetColor() != playerColor {
-		// player needs to own `from` piece
-		return emptyMovePieceResponse, game_errors.GameErrorf(
-			game_errors.ERROR_Game_InvalidPiece,
-			"piece, '%v', does not belong to player, '%s'!", fromPiece, player_id,
+	}
+
+	// player needs to own `from` piece
+	if fromPiece == nil {
+		return nil, game_errors.GameErrorf(
+			game_errors.ERROR_Game_InvalidMove,
+			"no piece at position, %v!", from,
+		)
+	} else if !g.checkOwnership(playerId, fromPiece.GetId()) {
+		return nil, game_errors.GameErrorf(
+			game_errors.ERROR_Game_InvalidMove,
+			"piece, '%v', does not belong to player, '%s'!", fromPiece, playerId,
 		)
 	}
 
 	// player can't to own `to` piece
 	toPiece := g.Board.GetSquare(to).GetPiece()
-	if toPiece != nil && toPiece.GetColor() == playerColor {
-		return emptyMovePieceResponse, game_errors.GameErrorf(
-			game_errors.ERROR_Game_InvalidPiece,
-			"piece, '%v', already belongs to player, '%s', invalid move!", toPiece, player_id,
+	if toPiece != nil && g.checkOwnership(playerId, toPiece.GetId()) {
+		return nil, game_errors.GameErrorf(
+			game_errors.ERROR_Game_InvalidMove,
+			"piece, '%v', already belongs to player, '%s', invalid move!", toPiece, playerId,
 		)
 	}
 
@@ -166,4 +167,13 @@ func (g *Game) MovePiece(player_id string, from Position, to Position) (MovePiec
 		g.nonce += 1
 	}
 	return response, err
+}
+
+func (g *Game) checkOwnership(playerId string, pieceId string) bool {
+	if p, onBoard := g.Board.GetPiece(pieceId); onBoard {
+		if player, inGame := g.players[playerId]; inGame {
+			return p.GetColor() == player.GetColor()
+		}
+	}
+	return false
 }

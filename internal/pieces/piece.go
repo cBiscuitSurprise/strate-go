@@ -1,8 +1,9 @@
 package pieces
 
 import (
+	"fmt"
+
 	"github.com/cBiscuitSurprise/strate-go/internal/core"
-	"github.com/cBiscuitSurprise/strate-go/internal/util"
 )
 
 type AttackHandler func(by Piece) core.Winner
@@ -14,9 +15,9 @@ type Piece struct {
 	maxMoves int
 }
 
-func CreatePiece(color Color, rank Rank) *Piece {
+func CreatePiece(index int, color Color, rank Rank) *Piece {
 	return &Piece{
-		id:       util.NewId(),
+		id:       fmt.Sprintf("%s:%02d:%02d", color.String(), rank, index),
 		color:    color,
 		maxMoves: getMovesForRank(rank),
 		rank:     rank,
@@ -43,21 +44,22 @@ func (p *Piece) GetColor() Color {
 	return p.color
 }
 
-func (p *Piece) Attack(attackee *Piece) (core.Winner, error) {
+func (p *Piece) Attack(attackee *Piece) core.Winner {
 	if p.GetRank() == RANK_Bomb || attackee.GetRank() == RANK_Bomb {
-		return AttackBomb(attackee, p)
+		winner, _ := AttackBomb(attackee, p)
+		return winner
 	} else {
 		return genericAttackPiece(attackee, p)
 	}
 }
 
-func genericAttackPiece(attackee *Piece, attacker *Piece) (core.Winner, error) {
+func genericAttackPiece(attackee *Piece, attacker *Piece) core.Winner {
 	if attackee.GetRank() == attacker.GetRank() {
-		return core.WINNER_Draw, nil
+		return core.WINNER_Draw
 	} else if attacker.GetRank() > attackee.GetRank() {
-		return core.WINNER_Attacker, nil
+		return core.WINNER_Attacker
 	} else {
-		return core.WINNER_Attackee, nil
+		return core.WINNER_Attackee
 	}
 }
 

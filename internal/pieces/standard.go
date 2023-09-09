@@ -28,7 +28,7 @@ func generateRank(currentSet map[string]*Piece, color Color, rank Rank, count in
 	output := currentSet
 
 	for inx := 0; inx < count; inx++ {
-		p := CreatePiece(color, rank)
+		p := CreatePiece(inx, color, rank)
 		output[p.GetId()] = p
 	}
 

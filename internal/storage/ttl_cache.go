@@ -3,8 +3,6 @@ package storage
 import (
 	"sync"
 	"time"
-
-	"github.com/rs/zerolog/log"
 )
 
 type Record[V interface{}] struct {
@@ -38,7 +36,6 @@ func (m *TtlCache[K, V]) Len() int {
 }
 
 func (m *TtlCache[K, V]) ForEach(callback func(key K, value *V)) {
-	log.Trace().Msg("here")
 	for k, r := range m.cache {
 		callback(k, r.value)
 	}
