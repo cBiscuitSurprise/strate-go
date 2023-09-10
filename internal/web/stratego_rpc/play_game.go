@@ -92,6 +92,7 @@ func handlePlayGameRequest(request *pb.PlayGameRequest, state *playGameState) (*
 		if err := state.ResolveGame(request.GetGameId()); err != nil {
 			log.Warn().
 				Err(err).
+				Str("gameId", request.GetGameId()).
 				Msgf("failed to resolve game with id, '%s'", request.GetGameId())
 			return &pb.PlayGameResponse{
 				RedPlayerActive: state.IsRedPlayerActive(),
@@ -136,6 +137,7 @@ func handlePlayGameMovePiece(request *pb.PlayGameRequest, state *playGameState) 
 	); err != nil {
 		log.Error().
 			Err(err).
+			Str("gameId", state.game.GetId()).
 			Msg("failed to move piece")
 
 		return &pb.PlayGameResponse{

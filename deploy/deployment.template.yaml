@@ -23,6 +23,14 @@ spec:
           env:
             - name: REDIS_CONN_DIR
               value: /etc/redis-conn
+            - name: SG_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: SG_POD_ADDRESS
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
           volumeMounts:
             - name: redis-conn
               mountPath: /etc/redis-conn

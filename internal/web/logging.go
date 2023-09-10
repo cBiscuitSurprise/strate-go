@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/rs/zerolog"
@@ -96,9 +97,11 @@ func logServerCommand(logger func() *zerolog.Event, md metadata.MD, fullMethod s
 	}
 
 	logger().
-		Str("FullMethod", fullMethod).
-		Str("RequestId", output.RequestId).
-		Str("UserId", output.UserId).
+		Str("pod", os.Getenv("SG_POD_NAME")).
+		Str("addr", os.Getenv("SG_POD_ADDRESS")).
+		Str("fullMethod", fullMethod).
+		Str("requestId", output.RequestId).
+		Str("userId", output.UserId).
 		Msgf(msg, parts...)
 
 	return output
@@ -107,8 +110,10 @@ func logServerCommand(logger func() *zerolog.Event, md metadata.MD, fullMethod s
 func logError(err error, fullMethod string, info RequestInfo, msg string) {
 	log.Error().
 		Err(err).
-		Str("FullMethod", fullMethod).
-		Str("RequestId", info.RequestId).
-		Str("UserId", info.UserId).
+		Str("pod", os.Getenv("SG_POD_NAME")).
+		Str("addr", os.Getenv("SG_POD_ADDRESS")).
+		Str("fullMethod", fullMethod).
+		Str("requestId", info.RequestId).
+		Str("userId", info.UserId).
 		Msg(msg)
 }

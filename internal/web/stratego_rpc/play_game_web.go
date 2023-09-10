@@ -9,6 +9,8 @@ import (
 	"github.com/cBiscuitSurprise/strate-go/internal/storage"
 	"github.com/cBiscuitSurprise/strate-go/internal/web/apiadapter"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type playGameWebHandlerInput struct {
@@ -37,10 +39,9 @@ func playGameWebRequestHandler(userId string, request *pb.PlayGameRequest) (*pb.
 		if err := state.ResolveGame(request.GetGameId()); err != nil {
 			log.Warn().
 				Err(err).
+				Str("gameId", request.GetGameId()).
 				Msgf("failed to resolve game with id, '%s'", request.GetGameId())
-			return &pb.PlayGameWebResponse{
-				Error: fmt.Sprintf("failed to resolve game with id, '%s'", request.GetGameId()),
-			}, nil
+			return nil, status.Errorf(codes.NotFound, "failed to resolve game with id, '%s'", request.GetGameId())
 		}
 	}
 
@@ -63,8 +64,9 @@ func playGameWebListener(userId string, input *playGameWebHandlerInput) (*dummy,
 	if err := state.ResolveGame(input.request.GetGameId()); err != nil {
 		log.Warn().
 			Err(err).
+			Str("gameId", input.request.GetGameId()).
 			Msgf("failed to resolve game with id, '%s'", input.request.GetGameId())
-		return nil, fmt.Errorf("failed to resolve game with id, '%s'", input.request.GetGameId())
+		return nil, status.Errorf(codes.NotFound, "failed to resolve game with id, '%s'", input.request.GetGameId())
 	}
 
 	client := storage.NewStrategoRedisClient(fmt.Sprintf("Listener:Game:%s", state.game.GetId()))
