@@ -2,6 +2,9 @@ package storage
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/cBiscuitSurprise/strate-go/internal/game"
@@ -26,11 +29,13 @@ func (r *StrategoRedisClient) IsConnected() bool {
 }
 
 func (r *StrategoRedisClient) Connect() {
+	info := r.getConnInfo()
 	r.context = context.Background()
 	r.client = redis.NewClient(&redis.Options{
-		Addr:       "localhost:6379",
-		Password:   "", // no password set
-		DB:         0,  // use default DB
+		Addr:       fmt.Sprintf("%s:%s", info["hostname"], info["port"]),
+		Username:   info["username"],
+		Password:   info["password"],
+		DB:         0,
 		ClientName: r.name,
 	})
 }
@@ -93,5 +98,29 @@ func (r *StrategoRedisClient) ListenForPieceMoveEvent(gameId string, sinceId str
 				}
 			}
 		}
+	}
+}
+
+func (r *StrategoRedisClient) getConnInfo() map[string]string {
+	connDir := os.Getenv("REDIS_CONN_DIR")
+
+	return map[string]string{
+		"hostname": readFile(filepath.Join(connDir, "hostname")),
+		"port":     readFile(filepath.Join(connDir, "port")),
+		"username": readFile(filepath.Join(connDir, "username")),
+		"password": readFile(filepath.Join(connDir, "password")),
+	}
+}
+
+func readFile(filename string) string {
+	if body, err := os.ReadFile(filename); err != nil {
+		log.Warn().
+			Err(err).
+			Str("method", "StrategoRedisClient.readFile").
+			Str("filename", filename).
+			Msg("failed to read file")
+		return ""
+	} else {
+		return string(body)
 	}
 }

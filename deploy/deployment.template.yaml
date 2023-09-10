@@ -15,12 +15,23 @@ spec:
         app: strate-go
     spec:
       containers:
-      - name: strate-go
-        image: $__IMAGE_NAME:$__IMAGE_TAG
-        ports: 
-        - containerPort: 12345
-        args: ['serve', '--origin', '0.0.0.0', '--port', '12345']
+        - name: strate-go
+          image: $__IMAGE_NAME:$__IMAGE_TAG
+          ports: 
+            - containerPort: 12345
+          args: ['serve', '--origin', '0.0.0.0', '--port', '12345']
+          env:
+            - name: REDIS_CONN_DIR
+              value: /etc/redis-conn
+          volumeMounts:
+            - name: redis-conn
+              mountPath: /etc/redis-conn
+              readOnly: true
       restartPolicy: Always
+      volumes:
+        - name: redis-conn
+          secret:
+            secretName: redis-conn-secret
 ---
 apiVersion: v1
 kind: Service
