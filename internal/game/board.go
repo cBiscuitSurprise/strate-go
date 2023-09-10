@@ -177,11 +177,17 @@ func (b *Board) MovePiece(from Position, to Position) (*MovePieceResponse, *game
 	}
 
 	response.Move = Move{
-		Id:     attacker.GetId(),
-		From:   &from,
-		To:     &to,
-		Result: b.computeMoveResult(attacker, attackee),
+		Id:           attacker.GetId(),
+		From:         &from,
+		To:           &to,
+		Result:       b.computeMoveResult(attacker, attackee),
+		AttackerRank: int(attacker.GetRank()),
 	}
+
+	if attackee != nil {
+		response.Move.AttackeeRank = int(attackee.GetRank())
+	}
+
 	if ok := b.ApplyMove(response.Move); ok {
 		return response, nil
 	} else {

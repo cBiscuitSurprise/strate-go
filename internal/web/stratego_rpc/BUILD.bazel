@@ -11,6 +11,7 @@ go_library(
         "ping.go",
         "plan_game.go",
         "play_game.go",
+        "play_game_web.go",
         "stratego_server.go",
         "streaming.go",
         "util.go",

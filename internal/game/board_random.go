@@ -12,7 +12,8 @@ func CreateRandomlyPlannedBoard() (*Board, error) {
 	playerOnePieces := pieces.GenerateStandardPieces(pieces.COLOR_red)
 	playerTwoPieces := pieces.GenerateStandardPieces(pieces.COLOR_blue)
 
-	board := CreateStandardBaseBoard(util.UpdateMap[string, *pieces.Piece](playerOnePieces, playerTwoPieces))
+	allPieces := util.UpdateMap[string, *pieces.Piece](map[string]*pieces.Piece{}, playerOnePieces, playerTwoPieces)
+	board := CreateStandardBaseBoard(allPieces)
 
 	board, err := placePieces(board, playerOnePieces, 0)
 	if err != nil {
@@ -39,12 +40,14 @@ func placePieces(board *Board, unplaced map[string]*pieces.Piece, startRow int) 
 		if err != nil {
 			log.Error().
 				Err(err).
+				Str("method", "board_random.placePieces").
 				Int("number", inx).
 				Int("row", row).
 				Int("number", column).
-				Str("piece", p.GetRank().String()).
+				Str("piece", p.GetId()).
+				Str("rank", p.GetRank().String()).
 				Str("position", fmt.Sprintf("(%d, %d)", row, column)).
-				Msg("failed to place piece")
+				Msg("failed to generate random board")
 			return nil, err
 		}
 		inx++

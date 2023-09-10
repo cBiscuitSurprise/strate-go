@@ -32,11 +32,13 @@ func DeserializePosition(p string) (*Position, error) {
 
 func SerializeMove(move Move) string {
 	return fmt.Sprintf(
-		"%s %s %s %d",
+		"%s %s %s %d %d %d",
 		move.Id,
 		SerializePosition(move.From),
 		SerializePosition(move.To),
 		move.Result,
+		move.AttackerRank,
+		move.AttackeeRank,
 	)
 }
 
@@ -45,10 +47,12 @@ func DeserializeMove(move string) (Move, error) {
 	var from string
 	var to string
 	var result MoveResult
+	var attackerRank int
+	var attackeeRank int
 
-	if n, err := fmt.Sscanf(move, "%s %s %s %d", &id, &from, &to, &result); err != nil {
+	if n, err := fmt.Sscanf(move, "%s %s %s %d %d %d", &id, &from, &to, &result, &attackerRank, &attackeeRank); err != nil {
 		return Move{}, err
-	} else if n == 4 {
+	} else if n == 6 {
 		from, err := DeserializePosition(from)
 		if err != nil {
 			return Move{}, err
@@ -59,10 +63,12 @@ func DeserializeMove(move string) (Move, error) {
 		}
 
 		return Move{
-			Id:     id,
-			From:   from,
-			To:     to,
-			Result: result,
+			Id:           id,
+			From:         from,
+			To:           to,
+			Result:       result,
+			AttackerRank: attackerRank,
+			AttackeeRank: attackeeRank,
 		}, nil
 	} else {
 		return Move{}, fmt.Errorf("failed to parse serialized move %s, invalid string", move)

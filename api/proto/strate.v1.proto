@@ -19,6 +19,8 @@ service StrateGo {
   rpc GetGame(GetGameRequest) returns (GetGameResponse) {}
   rpc PlanGame(stream PlanGameRequest) returns (stream PlanGameResponse) {}
   rpc PlayGame(stream PlayGameRequest) returns (stream PlayGameResponse) {}
+  rpc PlayGameWeb(PlayGameRequest) returns (PlayGameWebResponse) {}
+  rpc PlayGameWebListener(PlayGameWebListenerRequest) returns (stream PlayGameResponse) {}
   // #endregion Game
 }
 
@@ -161,6 +163,15 @@ message PlayGameResponse {
   PieceMovedEvent pieceMoved = 4;
   
   string error = 16;
+}
+
+message PlayGameWebResponse {
+  string gameId = 1;
+  string error = 2;
+}
+
+message PlayGameWebListenerRequest {
+  string gameId = 1;
 }
 // #endregion Game
 

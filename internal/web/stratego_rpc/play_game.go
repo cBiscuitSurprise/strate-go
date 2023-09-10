@@ -2,6 +2,7 @@ package stratego_rpc
 
 import (
 	"fmt"
+	"sync"
 
 	pb "github.com/cBiscuitSurprise/strate-go/api/go/strategopb"
 	"github.com/cBiscuitSurprise/strate-go/internal/game"
@@ -9,6 +10,28 @@ import (
 	"github.com/cBiscuitSurprise/strate-go/internal/web/apiadapter"
 	"github.com/rs/zerolog/log"
 )
+
+var playGamePubber syncPlayGamePubber
+
+func init() {
+	playGamePubber = syncPlayGamePubber{
+		client: storage.NewStrategoRedisClient("Publisher:PlayGame"),
+	}
+}
+
+type syncPlayGamePubber struct {
+	mu     sync.Mutex
+	client *storage.StrategoRedisClient
+}
+
+func (p *syncPlayGamePubber) Publish(gameId string, move game.Move) {
+	p.mu.Lock()
+	if !p.client.IsConnected() {
+		p.client.Connect()
+	}
+	p.client.PublishPieceMoveEvent(gameId, move)
+	p.mu.Unlock()
+}
 
 type playGameState struct {
 	game            *game.Game
@@ -126,7 +149,7 @@ func handlePlayGameMovePiece(request *pb.PlayGameRequest, state *playGameState) 
 		if response.Attackee != nil {
 			var attackerRank int32
 			if response.Attacker != nil {
-				attackerRank = int32(response.Attackee.GetRank())
+				attackerRank = int32(response.Attacker.GetRank())
 			}
 
 			var attackeeRank int32
@@ -141,7 +164,8 @@ func handlePlayGameMovePiece(request *pb.PlayGameRequest, state *playGameState) 
 			}
 		}
 
-		// TODO: emit piece-moved-event
+		playGamePubber.Publish(state.game.GetId(), response.Move)
+
 		moveEvent := &pb.PieceMovedEvent{
 			Nonce:         uint32(state.game.GetNonce()),
 			PieceId:       response.Move.Id,

@@ -36,9 +36,9 @@ func (s Rank) String() string {
 	case RANK_Sergent:
 		return "Sergent"
 	case RANK_Minor:
-		return "Minor"
+		return "Miner"
 	case RANK_Scout:
-		return "Scount"
+		return "Scout"
 	case RANK_Spy:
 		return "Spy"
 	case RANK_Flag:

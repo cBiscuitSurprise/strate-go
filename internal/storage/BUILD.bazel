@@ -4,9 +4,15 @@ go_library(
     name = "storage",
     srcs = [
         "data.go",
+        "keys.go",
+        "redis.go",
         "ttl_cache.go",
     ],
     importpath = "github.com/cBiscuitSurprise/strate-go/internal/storage",
     visibility = ["//:__subpackages__"],
-    deps = ["//internal/game"],
+    deps = [
+        "//internal/game",
+        "@com_github_redis_go_redis_v9//:go-redis",
+        "@com_github_rs_zerolog//log",
+    ],
 )
