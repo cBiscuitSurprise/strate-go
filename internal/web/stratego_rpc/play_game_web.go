@@ -45,9 +45,11 @@ func playGameWebRequestHandler(userId string, request *pb.PlayGameRequest) (*pb.
 		}
 	}
 
-	if response, err := handlePlayGameMovePiece(request, state); err == nil {
+	if response, err := handlePlayGameRequest(request, state); err == nil {
 		return &pb.PlayGameWebResponse{
-			Error: response.GetError(),
+			GameId:          response.GetGameId(),
+			Error:           response.GetError(),
+			ValidPlacements: response.GetValidPlacements(),
 		}, nil
 	} else {
 		return nil, err

@@ -124,6 +124,7 @@ func handlePlayGamePickPiece(request *pb.PlayGameRequest, state *playGameState) 
 	)
 
 	return &pb.PlayGameResponse{
+		GameId:          state.game.GetId(),
 		RedPlayerActive: state.IsRedPlayerActive(),
 		ValidPlacements: apiadapter.MapConvert[game.Position, pb.Position](validPlacements, apiadapter.GamePositionToApiPosition),
 	}, nil
@@ -141,6 +142,7 @@ func handlePlayGameMovePiece(request *pb.PlayGameRequest, state *playGameState) 
 			Msg("failed to move piece")
 
 		return &pb.PlayGameResponse{
+			GameId:          state.game.GetId(),
 			RedPlayerActive: state.IsRedPlayerActive(),
 			Error:           err.Error(),
 		}, nil
@@ -176,6 +178,7 @@ func handlePlayGameMovePiece(request *pb.PlayGameRequest, state *playGameState) 
 			PieceAttacked: attackEvent,
 		}
 		return &pb.PlayGameResponse{
+			GameId:          state.game.GetId(),
 			RedPlayerActive: state.IsRedPlayerActive(),
 			PieceMoved:      moveEvent,
 		}, nil

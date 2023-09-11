@@ -158,6 +158,7 @@ message PlayGameRequest {
 }
 
 message PlayGameResponse {
+  string gameId = 1;
   bool redPlayerActive = 2;
   repeated Position validPlacements = 3;
   PieceMovedEvent pieceMoved = 4;
@@ -168,6 +169,7 @@ message PlayGameResponse {
 message PlayGameWebResponse {
   string gameId = 1;
   string error = 2;
+  repeated Position validPlacements = 3;
 }
 
 message PlayGameWebListenerRequest {

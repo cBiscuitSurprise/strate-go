@@ -153,8 +153,25 @@ func (g *Game) MovePiece(playerId string, from Position, to Position) (*MovePiec
 		)
 	}
 
+	// `to` Square must be playable
+	toSquare := g.Board.GetSquare(to)
+	if !toSquare.IsPlayable() {
+		return nil, game_errors.GameErrorf(
+			game_errors.ERROR_Game_InvalidMove,
+			"can't move to square '%v', unplayable square!", to,
+		)
+	}
+
+	// `to` square must be a valid move
+	if !g.validateMoveTo(playerId, from, to) {
+		return nil, game_errors.GameErrorf(
+			game_errors.ERROR_Game_InvalidMove,
+			"piece, '%v', can't move to, '%v', invalid move (max distance = %d)!", fromPiece, to, fromPiece.GetMaxMoves(),
+		)
+	}
+
 	// player can't to own `to` piece
-	toPiece := g.Board.GetSquare(to).GetPiece()
+	toPiece := toSquare.GetPiece()
 	if toPiece != nil && g.checkOwnership(playerId, toPiece.GetId()) {
 		return nil, game_errors.GameErrorf(
 			game_errors.ERROR_Game_InvalidMove,
@@ -173,6 +190,15 @@ func (g *Game) checkOwnership(playerId string, pieceId string) bool {
 	if p, onBoard := g.Board.GetPiece(pieceId); onBoard {
 		if player, inGame := g.players[playerId]; inGame {
 			return p.GetColor() == player.GetColor()
+		}
+	}
+	return false
+}
+
+func (g *Game) validateMoveTo(playerId string, from Position, to Position) bool {
+	for _, validTo := range g.GetValidMovesFromPosition(playerId, from) {
+		if to == *validTo {
+			return true
 		}
 	}
 	return false
