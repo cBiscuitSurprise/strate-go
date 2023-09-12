@@ -112,7 +112,7 @@ func TestGameMove(t *testing.T) {
 	response, gerr = g.MovePiece(p1.GetId(), Position{R: 3, C: 2}, Position{R: 4, C: 2})
 	assert.Nil(t, response)
 	if assert.NotNil(t, gerr) {
-		assert.Equal(t, game_errors.ERROR_Board_UnplayableSquare, gerr.Code)
+		assert.Equal(t, game_errors.ERROR_Game_InvalidMove, gerr.Code)
 	}
 
 	// Try moving from empty square
