@@ -200,6 +200,7 @@ message Board {
   uint32 num_rows = 2;
   uint32 num_columns = 3;
   repeated Row rows = 4;
+  repeated Piece reserves = 5;
 }
 
 message Row {
