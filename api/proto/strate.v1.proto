@@ -17,7 +17,6 @@ service StrateGo {
   rpc NewGame(NewGameRequest) returns (NewGameResponse) {}
   rpc ListGames(ListGamesRequest) returns (ListGamesResponse) {}
   rpc GetGame(GetGameRequest) returns (GetGameResponse) {}
-  rpc PlanGame(stream PlanGameRequest) returns (stream PlanGameResponse) {}
   rpc PlayGame(stream PlayGameRequest) returns (stream PlayGameResponse) {}
   rpc PlayGameWeb(PlayGameRequest) returns (PlayGameWebResponse) {}
   rpc PlayGameWebListener(PlayGameWebListenerRequest) returns (stream PlayGameResponse) {}
@@ -120,41 +119,23 @@ message PieceMovedEvent {
   AttackEvent pieceAttacked = 5;
 }
 
-enum PlanGameRequestCommand {
-  PlanGameRequestCommand_PICK_PIECE = 0;
-  PlanGameRequestCommand_PLACE_PIECE = 1;
-  PlanGameRequestCommand_UNDO = 2;
-  PlanGameRequestCommand_REDO = 3;
-  PlanGameRequestCommand_RESET = 100;
-  PlanGameRequestCommand_READY = 200;
-}
-
-message PlanGameRequest {
-  string gameId = 1;
-  PlanGameRequestCommand command = 2;
-  optional string selectedPieceId = 3;
-  optional Position selectedPosition = 4;
-}
-
-message PlanGameResponse {
-  uint32 nonce = 1;
-  repeated Position validPlacements = 2;
-  repeated History history = 3;
-
-  string error = 16;
-}
-
 enum PlayGameRequestCommand {
   PlayGameRequestCommand_PICK_PIECE = 0;
   PlayGameRequestCommand_MOVE_PIECE = 1;
-  PlayGameRequestCommand_FOREFEIT = 2;
+  PlayGameRequestCommand_PLACE_PIECE = 2;
+  PlayGameRequestCommand_UNDO = 3;
+  PlayGameRequestCommand_REDO = 4;
+  PlayGameRequestCommand_RESET = 100;
+  PlayGameRequestCommand_READY = 200;
+  PlayGameRequestCommand_FOREFEIT = 300;
 }
 
 message PlayGameRequest {
   string gameId = 1;
   PlayGameRequestCommand command = 2;
   optional Position selectedPiecePosition = 3;
-  optional Position selectedPlacement = 4;
+  optional string selectedPieceId = 4;
+  optional Position selectedPlacement = 5;
 }
 
 message PlayGameResponse {
